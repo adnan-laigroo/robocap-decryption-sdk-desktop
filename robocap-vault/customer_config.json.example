@@ -1,0 +1,4 @@
+{
+  "vault_root": "~/robocap-vault",
+  "user_private_key_path": "~/keys/your_device/user_private.pem"
+}

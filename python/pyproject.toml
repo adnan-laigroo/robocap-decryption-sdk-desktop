@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robocap-sdk"
+version = "0.2.0"
+description = "Robocap CENC MP4 offline decrypt SDK"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=42.0.0",
+    "pydantic>=2.0.0",
+    "click>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+]
+web = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
+    "apscheduler>=3.10.0",
+    "httpx>=0.27.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.scripts]
+robocap-sdk = "robocap_sdk.cli.main:cli"
+robocap-customer-decrypt = "robocap_customer:interactive_main"
+robocap-customer-import = "robocap_customer:import_main"
+robocap-customer-delete = "robocap_customer:delete_main"
+robocap-web = "robocap_web.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]

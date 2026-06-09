@@ -1,0 +1,29 @@
+# gitleaks configuration for robocap-decryption-sdk
+#
+# This repository INTENTIONALLY ships throwaway RSA keypairs used only as
+# local demo material and cross-SDK test vectors. They correspond to no real
+# device or customer. The allowlist below scopes those known, intentional
+# files so CI stays green — while any new secret introduced ELSEWHERE
+# (source code, config, app logic) will still fail the scan.
+#
+# Note: this is a path-based allowlist — it ignores ALL findings within the
+# listed files, not just private keys. That is acceptable here because every
+# listed path is either a pure key file or a test fixture that contains only
+# demo keys. Do not add real application code or config to this list.
+
+# Start from the upstream default ruleset, then layer our allowlist on top.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Intentional demo/test RSA keypairs (no real secrets)"
+paths = [
+  # Cross-SDK test vectors (consumed by ruby/test + spec/cross-sdk-verification.md)
+  '''test-vectors/.*\.pem$''',
+  # Demo vault shipped for local quick-reference runs
+  '''robocap-vault/vault/keys/.*\.pem$''',
+  # Inline fixture keys embedded directly in the test suites
+  '''python/tests/helpers_cenc\.py$''',
+  '''ruby/test/helpers\.rb$''',
+  '''ruby/test/unit/test_rsa_oaep\.rb$''',
+]

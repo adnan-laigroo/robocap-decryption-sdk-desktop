@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'robocap/sdk/cli'
+
+exit Robocap::SDK::CLI.run(ARGV.dup)
