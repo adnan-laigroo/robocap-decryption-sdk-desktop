@@ -1,163 +1,186 @@
-# Robocap CENC Decrypt SDK
+# Robocap Decryption SDK - Python
 
-Offline tools to import 2048-bit keys into a local **vault**, optionally remove one vault version, and batch-decrypt **CENC MP4** files. All customer commands use **English** interactive prompts.
+Python implementation of the Robocap customer-side decryption SDK. It provides:
 
----
+- A core SDK package for RSA key vault operations and CENC MP4 decryption.
+- Customer-facing interactive commands for import, decrypt, and delete flows.
+- A FastAPI backend for local/web clients that need the same operations over HTTP.
+
+The shared vault layout, CENC metadata format, and cross-language expectations live in the repository-level [`../spec/`](../spec) directory.
+
+## Requirements
+
+- Python 3.10+
+- `ffmpeg` and `ffprobe` on `PATH` for CENC MP4 decrypt operations
 
 ## Install
 
+From this repository checkout:
+
 ```bash
-cd ~/robocap_sdk
+cd python
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e .
 ```
 
-Requires **Python 3.10+** and **ffmpeg / ffprobe** on your PATH.
+For development and the full test suite, install both optional extras:
 
----
+```bash
+pip install -e ".[dev,web]"
+```
 
-## Before you start
+Install only the web dependencies when running the FastAPI backend:
 
-| Concept | Meaning |
-|---------|---------|
-| **Vault path** | Any folder you choose (e.g. `~/robocap-vault`). Same path for import, delete, and decrypt. Created automatically on first **import** if missing. |
-| **Key bundle** | A folder with `rsa_public_spki.pem` + `rsa_private_pkcs8.pem` (optional `user_private.pem`). Usually under `~/keys/`. |
-| **Vault version (v1, v2, …)** | A copy of a key bundle already **imported** into `{vault}/vault/keys/{customer_id}/rsa/vN/`. Assigned automatically on import. |
+```bash
+pip install -e ".[web]"
+```
 
-Settings are saved in `{vault}/customer_config.json` (vault path, customer ID, user private key path).
-
----
-
-## Typical flow
+## Package Layout
 
 ```text
-1. robocap-customer-import     → load keys into vault (once per new key bundle)
-2. robocap-customer-decrypt    → decrypt session folders
-3. robocap-customer-delete     → optional; remove a mistaken vault version only
+src/robocap_sdk/       Core SDK: vault layout, RSA import/delete, CENC decrypt
+src/robocap_customer/  Interactive customer CLI workflows and batch decrypt
+src/robocap_web/       FastAPI app, auth middleware, task store, SSE progress
+scripts/               Utility scripts for key generation/import/diagnostics
+tests/                 Unit tests for SDK, customer flows, and web endpoints
 ```
 
----
+## Core SDK CLI
 
-## 1. Import keys — `robocap-customer-import`
+The `robocap-sdk` command is the lower-level JSON-emitting CLI. It is useful for automation and tests.
 
 ```bash
-robocap-customer-import
+robocap-sdk import-rsa \
+  --customer-id frodobot_123 \
+  --public-key /path/to/rsa_public_spki.pem \
+  --private-key /path/to/rsa_private_pkcs8.pem \
+  --rsa-key-version 1
+
+robocap-sdk decrypt-cenc \
+  --mp4-path /path/to/encrypted.mp4 \
+  --private-key /path/to/user_private.pem \
+  --output-dir /path/to/output
+
+robocap-sdk delete-rsa \
+  --customer-id frodobot_123 \
+  --rsa-key-version 1
 ```
 
-| Prompt | What to enter |
-|--------|----------------|
-| Vault path | e.g. `~/robocap-vault` (any name you prefer) |
-| Customer ID | e.g. `frodobot_123` |
-| Key bundle directory | See rules below |
-| User private key PEM path | **Skipped** if the bundle contains `user_private.pem` |
+By default, the core SDK stores its vault under `~/.robocap-sdk`. Override that with `ROBOCAP_SDK_ROOT` or pass `--sdk-root` to the CLI commands.
 
-**Key bundle directory — how the tool resolves your path**
+## Customer Interactive CLIs
 
-1. **Folder does not exist** → create it → ask to generate keys (`Y/n`).
-2. **Folder itself contains both PEM files** → import from that folder directly.
-3. **Otherwise** → scan **immediate subfolders** only (not deeper levels):
-   - **0** valid subfolders → ask to generate keys in this folder.
-   - **1** valid subfolder → use it automatically (`Using key bundle: …`).
-   - **2+** valid subfolders → numbered menu (`Select bundle [1]:`).
+These commands are the higher-level customer workflow. They prompt for paths, save customer settings in `{vault}/customer_config.json`, and operate against the vault path you provide.
 
-A valid subfolder must contain `rsa_public_spki.pem` and `rsa_private_pkcs8.pem`.  
-If `~/keys/` has PEM files at the **root**, the tool treats `~/keys` as one bundle and **will not** scan subfolders — use a specific subfolder path (e.g. `~/keys/frodobot_123_v7`) or a parent folder without root PEMs.
+```text
+robocap-customer-import   Import or generate RSA key bundles into a vault
+robocap-customer-decrypt  Batch decrypt CENC MP4 files from a session folder
+robocap-customer-delete   Delete one imported RSA key version from a vault
+```
 
-Each successful import adds the next vault version automatically (v1, then v2, …).
+Use the same vault path for all three commands.
 
----
+### Key Bundles
 
-## 2. Delete one vault version — `robocap-customer-delete`
+A key bundle contains:
 
-Removes **one** key folder under `{vault}/vault/keys/{customer_id}/rsa/`. Vault must already exist.
+```text
+rsa_public_spki.pem
+rsa_private_pkcs8.pem
+user_private.pem          optional; prompted separately when absent
+```
+
+`robocap-customer-import` accepts either a directory that directly contains the two RSA PEM files or a parent directory with valid immediate child bundle directories. If no bundle exists, the import flow can generate keys for you.
+
+### Batch Decrypt Behavior
+
+`robocap-customer-decrypt` recursively scans an input directory for encrypted MP4 files, preflights each file, decrypts to the selected output directory, and copies plain `.db` files after all MP4 decrypts succeed. Existing output files are handled through the same skip/overwrite conflict flow used by the API.
+
+## Python API
+
+The public SDK functions are exported from `robocap_sdk`:
+
+```python
+from pathlib import Path
+
+from robocap_sdk import decrypt_cenc_mp4, delete_rsa_key_version, import_rsa_key_version
+from robocap_sdk.models.key_meta import RsaKeyMeta
+```
+
+Main operations:
+
+- `import_rsa_key_version(...)`
+- `delete_rsa_key_version(...)`
+- `delete_rsa_key_dir(...)`
+- `decrypt_cenc_mp4(...)`
+- `verify_customer_private_key(...)`
+
+SDK errors are raised as `RobocapError` and include structured error codes for CLI/API callers.
+
+## FastAPI Backend
+
+The `robocap_web` package exposes the same customer workflows over HTTP.
 
 ```bash
-robocap-customer-delete
+DEV_MODE=true ROBOCAP_WEB_MODE=local robocap-web
 ```
 
-| Prompt | What to enter |
-|--------|----------------|
-| Vault path | Same as import |
-| Customer ID | e.g. `frodobot_123` |
-| Key version folders found | e.g. `frodobot_123/rsa/v1`, `frodobot_123/rsa/v2` |
-| Select folder to delete `[1]` | Pick by number |
-| Type yes to delete `{customer}/rsa/{folder}` | `yes` to confirm |
-
-Folders listed must contain vault `public.pem` and `private.pem` (any folder name, not only `v1`, `v2`). Does not scan `~/keys/`.
-
-**Do not delete** older vault folders still needed to decrypt OTA videos. Use delete only for mistaken imports or test cleanup.
-
----
-
-## 3. Decrypt videos — `robocap-customer-decrypt`
-
-Batch-decrypts CENC MP4 files under a folder (recursive scan, preflight on first file).
+Equivalent explicit command:
 
 ```bash
-robocap-customer-decrypt
+DEV_MODE=true ROBOCAP_WEB_MODE=local \
+  uvicorn robocap_web.main:app --reload --port 8000
 ```
 
-| Prompt | What to enter |
-|--------|----------------|
-| Vault path | Same as import |
-| User private key PEM path | e.g. `~/keys/.../user_private.pem` (default from config if saved) |
-| Encrypted input directory | Folder with encrypted MP4s |
-| Decrypted output directory | e.g. `~/out/session3` (created if needed) |
+Important settings:
 
-Customer ID is read from each MP4 automatically — you do not type it here.
+| Environment variable | Purpose |
+|----------------------|---------|
+| `DEV_MODE` | Enables local development behavior, including local browse endpoints |
+| `ROBOCAP_WEB_MODE` | `local` by default; non-local mode rejects insecure default secrets |
+| `ROBOCAP_DATA_ROOT` | Directory for task JSON state; defaults to `./data` |
+| `ROBOCAP_WEB_USER` | Web username; defaults to `frodobot` |
+| `ROBOCAP_WEB_PASSWORD` | Web password; default allowed only in local/dev use |
+| `ROBOCAP_SESSION_SECRET` | Session signing secret; must be changed outside local/dev use |
+| `ROBOCAP_BROWSE_ROOTS` | Semicolon-separated allowed roots for local browsing |
 
-After all MP4s decrypt successfully, plain `.db` files from the input session (excluding `*.db.enc`) are copied into the output directory with the same folder layout. Output conflicts use the same Skip/Overwrite menu as MP4s.
+Primary API groups:
 
-Play output: `ffplay ~/out/session3/clip.mp4` — use a **file** path, not the folder alone.
-
----
-
-## Quick reference
-
-| Command | Purpose |
-|---------|---------|
-| `robocap-customer-import` | Keys → vault (auto version, optional generate / bundle pick) |
-| `robocap-customer-decrypt` | Encrypted MP4 folder → plain MP4 folder |
-| `robocap-customer-delete` | Remove one `vN` from vault (confirm with `yes`) |
-
-Use the **same vault path** for all three commands.
-
----
-
-## M1 Web MVP (local)
-
-Browser UI for import, delete, and decrypt on the same machine. Requires **Node.js 18+** for the frontend.
-
-**完整本地配置、启动、路径与排错说明见：** [docs/local-web-readme.md](docs/local-web-readme.md)
-
-### Quick start (Windows CMD)
-
-**Terminal 1 — backend:**
-
-```cmd
-cd C:\Users\Administrator\Desktop\robocap加密sdk
-.venv\Scripts\activate.bat
-set DEV_MODE=true
-set ROBOCAP_WEB_MODE=local
-pip install -e ".[web]"
-uvicorn robocap_web.main:app --reload --port 8000
+```text
+GET  /api/health
+/api/auth
+/api/customers
+/api/import
+/api/delete
+/api/decrypt
+/api/local
 ```
 
-**Terminal 2 — frontend:**
+Decrypt tasks run asynchronously and expose task status plus SSE events under `/api/decrypt/tasks/{task_id}`.
 
-```cmd
-cd web
-npm install
-npm run dev
+This repository does not include a bundled frontend under `python/`; the web package is the backend/API layer.
+
+## Tests
+
+Run the full Python test suite from the `python/` directory:
+
+```bash
+pip install -e ".[dev,web]"
+pytest
 ```
 
-Open **`http://localhost:5173/`** (prefer `localhost` over `127.0.0.1` on Windows).
+The tests cover the core SDK, customer interactive workflows, batch decrypt logic, and FastAPI endpoints.
 
-| Setting | M1 default |
-|---------|------------|
-| `DEV_MODE=true` | Auto-login as `dev`; local path browse enabled |
-| `ROBOCAP_WEB_MODE=local` | Vault/bundle paths on local disk |
-| `ROBOCAP_DATA_ROOT` | Task JSON store (default `./data`) |
+## Utility Scripts
 
-Decrypt runs asynchronously with SSE progress. Import and delete are synchronous API calls equivalent to the CLI commands above.
+The `scripts/` directory contains standalone helpers for diagnostics and fixture workflows:
+
+```text
+generate_cenc_rsa_2048.py
+import_cenc_keys.py
+diagnose_cek_unwrap.py
+robocap_customer_decrypt.py
+```
+
+Prefer the installed console scripts for normal use; keep these scripts for manual verification and troubleshooting.
