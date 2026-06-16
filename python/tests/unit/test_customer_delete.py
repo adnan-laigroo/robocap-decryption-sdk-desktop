@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 
 from robocap_customer.delete_prompts import (
     DeleteSessionInput,

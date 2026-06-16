@@ -16,4 +16,4 @@ implementations.
   *(TODO.)*
 
 Until each spec document is written, the authoritative reference is the
-Python implementation under `../python/src/robocap_sdk/`.
+Python implementation under `../python/src/robocap_decryption_sdk/`.

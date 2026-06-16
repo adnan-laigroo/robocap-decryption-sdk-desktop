@@ -7,7 +7,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from robocap_sdk.config import validate_customer_id
+from robocap_decryption_sdk.config import validate_customer_id
 
 from robocap_customer.error_mapper import (
     MSG_BUNDLE_MISSING,

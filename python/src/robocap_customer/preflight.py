@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from robocap_sdk.auth.ownership import verify_customer_private_key
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.io.mp4_cenc import load_cenc_metadata
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.auth.ownership import verify_customer_private_key
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.io.mp4_cenc import load_cenc_metadata
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 
 from robocap_customer.error_mapper import (
     MSG_OWNERSHIP,

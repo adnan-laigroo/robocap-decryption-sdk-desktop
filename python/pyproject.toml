@@ -3,8 +3,8 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "robocap-sdk"
-version = "0.2.0"
+name = "robocap-decryption-sdk"
+version = "1.0.0"
 description = "Robocap CENC MP4 offline decrypt SDK"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,7 +29,7 @@ web = [
 ]
 
 [project.scripts]
-robocap-sdk = "robocap_sdk.cli.main:cli"
+robocap-decryption-sdk = "robocap_decryption_sdk.cli.main:cli"
 robocap-customer-decrypt = "robocap_customer:interactive_main"
 robocap-customer-import = "robocap_customer:import_main"
 robocap-customer-delete = "robocap_customer:delete_main"

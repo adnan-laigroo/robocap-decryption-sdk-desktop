@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from robocap_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
 
 MSG_VAULT_BAD = "Key vault not found or invalid."
 MSG_VAULT_NOT_WRITABLE = "Key vault directory is not writable."

@@ -3,7 +3,7 @@ from __future__ import annotations
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from robocap_sdk.config import RSA_PUBLIC_EXPONENT
+from robocap_decryption_sdk.config import RSA_PUBLIC_EXPONENT
 
 
 def generate_rsa_keypair(*, bits: int = 2048) -> tuple[bytes, bytes]:

@@ -19,8 +19,8 @@ SDK_ROOT=$(mktemp -d -t robocap-xsdk-py)
 python -c "
 from pathlib import Path
 from datetime import datetime, timezone
-from robocap_sdk.models.key_meta import RsaKeyMeta
-from robocap_sdk.services.rsa_import import import_rsa_key_version
+from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
+from robocap_decryption_sdk.services.rsa_import import import_rsa_key_version
 import_rsa_key_version(
     'XSDK',
     Path('test-vectors/keys/rsa_public_spki.pem').read_bytes(),
@@ -69,8 +69,8 @@ puts 'ruby-wrote ok'
 # Python: read meta + verify ownership using the user_private.pem fixture
 python -c "
 from pathlib import Path
-from robocap_sdk.vault.key_vault import KeyVault
-from robocap_sdk.auth.ownership import verify_customer_private_key
+from robocap_decryption_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.auth.ownership import verify_customer_private_key
 vault = KeyVault(Path('$SDK_ROOT'))
 assert vault.list_rsa_versions('XSDK') == [1], 'list mismatch'
 meta = vault.load_rsa_meta('XSDK', 1)
@@ -92,8 +92,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-from robocap_sdk.models.key_meta import RsaKeyMeta
-from robocap_sdk.services.rsa_import import import_rsa_key_version
+from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
+from robocap_decryption_sdk.services.rsa_import import import_rsa_key_version
 def kp(bits=2048):
     k = rsa.generate_private_key(65537, bits)
     return (
@@ -120,7 +120,7 @@ puts 'ruby deleted v1'
 # Python: confirms only v2 remains
 python -c "
 from pathlib import Path
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 assert KeyVault(Path('$SDK_ROOT')).list_rsa_versions('XSDK_DEL') == [2]
 print('python sees [v2] only')
 "
@@ -144,7 +144,7 @@ puts \"ruby wrapped #{File.size('$WRAP_OUT')} bytes\"
 python -c "
 from pathlib import Path
 from cryptography.hazmat.primitives import serialization
-from robocap_sdk.crypto.rsa_oaep import unwrap_cek
+from robocap_decryption_sdk.crypto.rsa_oaep import unwrap_cek
 priv = serialization.load_pem_private_key(Path('test-vectors/keys/rsa_private_pkcs8.pem').read_bytes(), password=None)
 cek = unwrap_cek(Path('$WRAP_OUT').read_bytes(), priv)
 assert cek == b'\xAA' * 16, f'wrong CEK {cek.hex()}'
@@ -157,7 +157,7 @@ Expected: Ruby reports the byte count (`256`), Python prints `python unwrapped o
 ## When to run
 
 - Before any release of either SDK.
-- After any change to `python/src/robocap_sdk/` or `ruby/lib/robocap/sdk/` that touches the vault layout, the K2/CENC format constants, or the RSA-OAEP parameters.
+- After any change to `python/src/robocap_decryption_sdk/` or `ruby/lib/robocap/sdk/` that touches the vault layout, the K2/CENC format constants, or the RSA-OAEP parameters.
 - When bumping the OpenSSL version on a deploy target.
 
 If any check fails, treat the diverging SDK as having a regression, not the agreed format. Update the failing side; do not update `test-vectors/` or this doc without explicit cross-team review.

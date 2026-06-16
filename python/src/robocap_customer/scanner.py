@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from robocap_sdk.io.mp4_cenc import has_cenc_tags
+from robocap_decryption_sdk.io.mp4_cenc import has_cenc_tags
 
 
 def scan_cenc_mp4(input_root: Path) -> list[Path]:

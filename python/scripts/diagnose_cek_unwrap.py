@@ -12,7 +12,7 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 
-from robocap_sdk.crypto.rsa_oaep import unwrap_cek
+from robocap_decryption_sdk.crypto.rsa_oaep import unwrap_cek
 
 
 def main() -> int:

@@ -6,8 +6,8 @@ from robocap_customer.delete_prompts import DeleteSessionInput, run_delete
 from robocap_customer.error_mapper import MSG_CUSTOMER_NOT_FOUND, MSG_NO_VERSIONS, CustomerFacingError
 from robocap_customer.key_bundle import validate_customer_id_input
 from robocap_customer.vault_validator import validate_vault_structure
-from robocap_sdk.services.rsa_delete import DeleteRsaResult
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.services.rsa_delete import DeleteRsaResult
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 
 PUBLIC_PEM = "public.pem"
 PRIVATE_PEM = "private.pem"

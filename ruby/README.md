@@ -27,9 +27,9 @@ bundle exec rake test
 ## CLI
 
 ```bash
-bundle exec exe/robocap-sdk import-rsa  --help
-bundle exec exe/robocap-sdk delete-rsa  --help
-bundle exec exe/robocap-sdk decrypt-cenc --help
+bundle exec exe/robocap-decryption-sdk import-rsa  --help
+bundle exec exe/robocap-decryption-sdk delete-rsa  --help
+bundle exec exe/robocap-decryption-sdk decrypt-cenc --help
 ```
 
 ## Verified against the Python SDK

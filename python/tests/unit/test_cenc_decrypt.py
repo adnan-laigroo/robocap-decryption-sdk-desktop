@@ -5,16 +5,16 @@ from unittest.mock import patch
 
 import pytest
 
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.config import RSA_2048_CIPHERTEXT_BYTES
-from robocap_sdk.io.mp4_cenc import (
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.config import RSA_2048_CIPHERTEXT_BYTES
+from robocap_decryption_sdk.io.mp4_cenc import (
     has_cenc_tags,
     load_cenc_metadata,
     parse_cenc_metadata_from_tags,
     read_format_tags,
 )
-from robocap_sdk.services.decrypt_cenc import decrypt_cenc_mp4
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.services.decrypt_cenc import decrypt_cenc_mp4
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 from tests.helpers import generate_rsa_keypair
 from tests.helpers_cenc import (
     EMBEDDED_CENC_PRIVATE_PEM,
@@ -38,10 +38,10 @@ def _ffprobe_result(tags: dict[str, str]):
 
 def _mock_ffprobe(tags: dict[str, str]):
     return patch(
-        "robocap_sdk.io.mp4_cenc.resolve_ffprobe_executable",
+        "robocap_decryption_sdk.io.mp4_cenc.resolve_ffprobe_executable",
         return_value="ffprobe",
     ), patch(
-        "robocap_sdk.io.mp4_cenc.subprocess.run",
+        "robocap_decryption_sdk.io.mp4_cenc.subprocess.run",
         return_value=_ffprobe_result(tags),
     )
 
@@ -174,13 +174,13 @@ def _decrypt_with_mocks(
         stderr = b""
 
     with patch(
-        "robocap_sdk.services.decrypt_cenc.load_cenc_metadata",
+        "robocap_decryption_sdk.services.decrypt_cenc.load_cenc_metadata",
         return_value=meta,
     ), patch(
-        "robocap_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
+        "robocap_decryption_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
         return_value="ffmpeg",
     ), patch(
-        "robocap_sdk.io.ffmpeg_cli.subprocess.run",
+        "robocap_decryption_sdk.io.ffmpeg_cli.subprocess.run",
         return_value=FfmpegResult(),
     ):
         return decrypt_cenc_mp4(

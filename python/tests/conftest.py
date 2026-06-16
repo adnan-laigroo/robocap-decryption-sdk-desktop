@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from robocap_sdk.models.key_meta import RsaKeyMeta
-from robocap_sdk.services.rsa_import import import_rsa_key_version
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
+from robocap_decryption_sdk.services.rsa_import import import_rsa_key_version
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 from tests.helpers import generate_rsa_keypair
 
 

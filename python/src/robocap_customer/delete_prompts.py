@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from robocap_sdk.services.rsa_delete import DeleteRsaResult, delete_rsa_key_dir
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.services.rsa_delete import DeleteRsaResult, delete_rsa_key_dir
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 
 from robocap_customer import console
 from robocap_customer.bootstrap import init_customer_logging

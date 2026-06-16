@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
 
   s.files = Dir['lib/**/*.rb'] + ['README.md']
   s.bindir      = 'exe'
-  s.executables = ['robocap-sdk']
+  s.executables = ['robocap-decryption-sdk']
   s.require_paths = ['lib']
 
   s.add_development_dependency 'base64', '~> 0.2'

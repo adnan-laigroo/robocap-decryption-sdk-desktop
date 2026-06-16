@@ -4,4 +4,4 @@ import logging
 
 
 def init_customer_logging() -> None:
-    logging.getLogger("robocap_sdk").setLevel(logging.CRITICAL)
+    logging.getLogger("robocap_decryption_sdk").setLevel(logging.CRITICAL)

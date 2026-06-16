@@ -5,8 +5,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from robocap_sdk.config import FFMPEG_ENV_VAR, FFPROBE_ENV_VAR
-from robocap_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.config import FFMPEG_ENV_VAR, FFPROBE_ENV_VAR
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
 
 
 def resolve_ffprobe_executable(explicit: str | None = None) -> str:
@@ -96,7 +96,7 @@ def decrypt_cenc_copy(
             "+use_metadata_tags",
         ]
     )
-    from robocap_sdk.io.mp4_cenc import CENC_STRIP_TAGS_ON_DECRYPT
+    from robocap_decryption_sdk.io.mp4_cenc import CENC_STRIP_TAGS_ON_DECRYPT
 
     for tag in CENC_STRIP_TAGS_ON_DECRYPT:
         cmd.extend(["-metadata", f"{tag}="])

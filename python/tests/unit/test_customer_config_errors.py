@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from robocap_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
 
 from robocap_customer.config import CustomerConfig
 from robocap_customer.error_mapper import (

@@ -13,7 +13,7 @@ from robocap_customer.vault_validator import (
     load_user_private_pem,
     validate_vault_structure,
 )
-from robocap_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
 
 
 @dataclass

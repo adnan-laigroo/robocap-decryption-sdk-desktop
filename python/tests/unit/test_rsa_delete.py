@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.services.rsa_delete import delete_rsa_key_dir, delete_rsa_key_version
-from robocap_sdk.vault.key_vault import KeyVault
-from robocap_sdk.vault.layout import ensure_private_dir
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.services.rsa_delete import delete_rsa_key_dir, delete_rsa_key_version
+from robocap_decryption_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.vault.layout import ensure_private_dir
 from tests.helpers import generate_rsa_keypair
 from tests.helpers_cenc import import_cenc_rsa_v1, import_cenc_rsa_vN
 

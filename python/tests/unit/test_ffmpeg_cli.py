@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.io.ffmpeg_cli import decrypt_cenc_copy
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.io.ffmpeg_cli import decrypt_cenc_copy
 
 
 def _mock_run_success(*args, **kwargs):
@@ -29,10 +29,10 @@ def test_decrypt_cenc_copy_preserves_metadata_flags(tmp_path: Path) -> None:
         return _mock_run_success()
 
     with patch(
-        "robocap_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
+        "robocap_decryption_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
         return_value="ffmpeg",
     ), patch(
-        "robocap_sdk.io.ffmpeg_cli.subprocess.run",
+        "robocap_decryption_sdk.io.ffmpeg_cli.subprocess.run",
         side_effect=_capture_run,
     ):
         decrypt_cenc_copy(
@@ -73,10 +73,10 @@ def test_decrypt_cenc_copy_omits_kid_when_not_provided(tmp_path: Path) -> None:
         return _mock_run_success()
 
     with patch(
-        "robocap_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
+        "robocap_decryption_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
         return_value="ffmpeg",
     ), patch(
-        "robocap_sdk.io.ffmpeg_cli.subprocess.run",
+        "robocap_decryption_sdk.io.ffmpeg_cli.subprocess.run",
         side_effect=_capture_run,
     ):
         decrypt_cenc_copy(
@@ -99,10 +99,10 @@ def test_decrypt_cenc_copy_raises_on_ffmpeg_failure(tmp_path: Path) -> None:
         stderr = b"decode error"
 
     with patch(
-        "robocap_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
+        "robocap_decryption_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
         return_value="ffmpeg",
     ), patch(
-        "robocap_sdk.io.ffmpeg_cli.subprocess.run",
+        "robocap_decryption_sdk.io.ffmpeg_cli.subprocess.run",
         return_value=_FailResult(),
     ):
         with pytest.raises(RobocapError) as exc_info:

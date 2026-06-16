@@ -6,10 +6,10 @@ import os
 import pytest
 from cryptography.hazmat.primitives import serialization
 
-from robocap_sdk.config import CEK_BYTES, RSA_2048_CIPHERTEXT_BYTES
-from robocap_sdk.crypto.rsa_oaep import unwrap_cek, unwrap_key, wrap_cek, wrap_key
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.io.mp4_cenc import parse_cenc_metadata_from_tags
+from robocap_decryption_sdk.config import CEK_BYTES, RSA_2048_CIPHERTEXT_BYTES
+from robocap_decryption_sdk.crypto.rsa_oaep import unwrap_cek, unwrap_key, wrap_cek, wrap_key
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.io.mp4_cenc import parse_cenc_metadata_from_tags
 from tests.helpers import generate_rsa_keypair
 
 

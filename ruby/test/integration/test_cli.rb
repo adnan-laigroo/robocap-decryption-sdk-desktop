@@ -4,7 +4,7 @@ require_relative '../test_helper'
 
 class TestCli < Minitest::Test
   RUBY_DIR  = Pathname(File.expand_path('../..', __dir__))
-  EXE       = RUBY_DIR.join('exe/robocap-sdk')
+  EXE       = RUBY_DIR.join('exe/robocap-decryption-sdk')
   FIXTURES  = TEST_VECTORS_DIR.join('keys')
 
   def setup

@@ -10,17 +10,17 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from robocap_sdk.config import (
+from robocap_decryption_sdk.config import (
     CEK_BYTES,
     RSA_2048_CIPHERTEXT_BYTES,
     RSA_BITS_ALLOWED,
     keys_vault_root,
     validate_customer_id,
 )
-from robocap_sdk.crypto import unwrap_key
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.models.key_meta import RsaKeyMeta
-from robocap_sdk.vault.layout import atomic_write_bytes, atomic_write_text, ensure_private_dir
+from robocap_decryption_sdk.crypto import unwrap_key
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
+from robocap_decryption_sdk.vault.layout import atomic_write_bytes, atomic_write_text, ensure_private_dir
 
 logger = logging.getLogger(__name__)
 

@@ -7,11 +7,11 @@ from pathlib import Path
 
 import click
 
-from robocap_sdk.errors import RobocapError
-from robocap_sdk.models.key_meta import RsaKeyMeta
-from robocap_sdk.services.decrypt_cenc import decrypt_cenc_mp4
-from robocap_sdk.services.rsa_delete import delete_rsa_key_version
-from robocap_sdk.services.rsa_import import import_rsa_key_version
+from robocap_decryption_sdk.errors import RobocapError
+from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
+from robocap_decryption_sdk.services.decrypt_cenc import decrypt_cenc_mp4
+from robocap_decryption_sdk.services.rsa_delete import delete_rsa_key_version
+from robocap_decryption_sdk.services.rsa_import import import_rsa_key_version
 
 
 def _emit_json(data: dict) -> None:

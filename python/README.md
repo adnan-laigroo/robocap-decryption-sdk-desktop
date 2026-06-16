@@ -39,7 +39,7 @@ pip install -e ".[web]"
 ## Package Layout
 
 ```text
-src/robocap_sdk/       Core SDK: vault layout, RSA import/delete, CENC decrypt
+src/robocap_decryption_sdk/       Core SDK: vault layout, RSA import/delete, CENC decrypt
 src/robocap_customer/  Interactive customer CLI workflows and batch decrypt
 src/robocap_web/       FastAPI app, auth middleware, task store, SSE progress
 scripts/               Utility scripts for key generation/import/diagnostics
@@ -48,21 +48,21 @@ tests/                 Unit tests for SDK, customer flows, and web endpoints
 
 ## Core SDK CLI
 
-The `robocap-sdk` command is the lower-level JSON-emitting CLI. It is useful for automation and tests.
+The `robocap-decryption-sdk` command is the lower-level JSON-emitting CLI. It is useful for automation and tests.
 
 ```bash
-robocap-sdk import-rsa \
+robocap-decryption-sdk import-rsa \
   --customer-id frodobot_123 \
   --public-key /path/to/rsa_public_spki.pem \
   --private-key /path/to/rsa_private_pkcs8.pem \
   --rsa-key-version 1
 
-robocap-sdk decrypt-cenc \
+robocap-decryption-sdk decrypt-cenc \
   --mp4-path /path/to/encrypted.mp4 \
   --private-key /path/to/user_private.pem \
   --output-dir /path/to/output
 
-robocap-sdk delete-rsa \
+robocap-decryption-sdk delete-rsa \
   --customer-id frodobot_123 \
   --rsa-key-version 1
 ```
@@ -99,13 +99,13 @@ user_private.pem          optional; prompted separately when absent
 
 ## Python API
 
-The public SDK functions are exported from `robocap_sdk`:
+The public SDK functions are exported from `robocap_decryption_sdk`:
 
 ```python
 from pathlib import Path
 
-from robocap_sdk import decrypt_cenc_mp4, delete_rsa_key_version, import_rsa_key_version
-from robocap_sdk.models.key_meta import RsaKeyMeta
+from robocap_decryption_sdk import decrypt_cenc_mp4, delete_rsa_key_version, import_rsa_key_version
+from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
 ```
 
 Main operations:

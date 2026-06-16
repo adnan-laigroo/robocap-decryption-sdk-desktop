@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from robocap_sdk.services.decrypt_cenc import decrypt_cenc_mp4
+from robocap_decryption_sdk.services.decrypt_cenc import decrypt_cenc_mp4
 
 from robocap_customer import console
 from robocap_customer.conflict_resolver import ConflictResolver

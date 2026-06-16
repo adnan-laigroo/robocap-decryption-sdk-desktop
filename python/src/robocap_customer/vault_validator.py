@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from robocap_sdk.vault.layout import ensure_private_dir
+from robocap_decryption_sdk.vault.layout import ensure_private_dir
 
 from robocap_customer.error_mapper import MSG_OUTPUT_PERM, MSG_VAULT_BAD, CustomerFacingError
 

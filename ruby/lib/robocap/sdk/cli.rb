@@ -12,14 +12,14 @@ module Robocap
       module_function
 
       USAGE = <<~TXT
-        Usage: robocap-sdk <command> [options]
+        Usage: robocap-decryption-sdk <command> [options]
 
         Commands:
           import-rsa     Import an RSA key pair into the vault
           delete-rsa     Delete one RSA key version from the vault
           decrypt-cenc   Decrypt a CENC MP4 (RSA-OAEP CEK unwrap + ffmpeg)
 
-        Run `robocap-sdk <command> --help` for command-specific options.
+        Run `robocap-decryption-sdk <command> --help` for command-specific options.
       TXT
 
       def run(argv)
@@ -55,7 +55,7 @@ module Robocap
       def cmd_import_rsa(argv)
         opts = {}
         OptionParser.new do |o|
-          o.banner = 'Usage: robocap-sdk import-rsa [options]'
+          o.banner = 'Usage: robocap-decryption-sdk import-rsa [options]'
           o.on('--customer-id CID')       { |v| opts[:customer_id] = v }
           o.on('--public-key PATH')       { |v| opts[:public_key] = Pathname(v) }
           o.on('--private-key PATH')      { |v| opts[:private_key] = Pathname(v) }
@@ -93,7 +93,7 @@ module Robocap
       def cmd_delete_rsa(argv)
         opts = {}
         OptionParser.new do |o|
-          o.banner = 'Usage: robocap-sdk delete-rsa [options]'
+          o.banner = 'Usage: robocap-decryption-sdk delete-rsa [options]'
           o.on('--customer-id CID') { |v| opts[:customer_id] = v }
           o.on('--rsa-key-version N', Integer) { |v| opts[:rsa_key_version] = v }
           o.on('--sdk-root PATH')   { |v| opts[:sdk_root] = Pathname(v) }
@@ -116,7 +116,7 @@ module Robocap
       def cmd_decrypt_cenc(argv)
         opts = {}
         OptionParser.new do |o|
-          o.banner = 'Usage: robocap-sdk decrypt-cenc [options]'
+          o.banner = 'Usage: robocap-decryption-sdk decrypt-cenc [options]'
           o.on('--mp4-path PATH')     { |v| opts[:mp4_path] = Pathname(v) }
           o.on('--private-key PATH')  { |v| opts[:private_key] = Pathname(v) }
           o.on('--output-dir PATH')   { |v| opts[:output_dir] = Pathname(v) }

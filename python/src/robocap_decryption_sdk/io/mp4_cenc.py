@@ -6,9 +6,9 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from robocap_sdk.config import RSA_2048_CIPHERTEXT_BYTES, validate_customer_id
-from robocap_sdk.errors import ErrorCode, RobocapError
-from robocap_sdk.io.ffmpeg_cli import resolve_ffprobe_executable
+from robocap_decryption_sdk.config import RSA_2048_CIPHERTEXT_BYTES, validate_customer_id
+from robocap_decryption_sdk.errors import ErrorCode, RobocapError
+from robocap_decryption_sdk.io.ffmpeg_cli import resolve_ffprobe_executable
 
 _CEKA_TAG = "cenc_cek_wrapped_b64"
 _CENC_WRAPPED_ALGO_TAG = "cenc_wrapped_algo"

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from robocap_sdk.config import VAULT_KEYS_DIR
-from robocap_sdk.vault.key_vault import KeyVault
-from robocap_sdk.vault.layout import ensure_private_dir
+from robocap_decryption_sdk.config import VAULT_KEYS_DIR
+from robocap_decryption_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.vault.layout import ensure_private_dir
 
 from robocap_customer.error_mapper import MSG_VAULT_NOT_WRITABLE, CustomerFacingError
 

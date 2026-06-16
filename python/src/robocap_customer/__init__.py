@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 
 from robocap_customer.bootstrap import init_customer_logging
 from robocap_customer.delete_prompts import delete_main

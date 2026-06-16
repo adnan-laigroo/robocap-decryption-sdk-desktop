@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from robocap_customer.config import CustomerConfig
-from robocap_sdk.vault.key_vault import KeyVault
+from robocap_decryption_sdk.vault.key_vault import KeyVault
 
 
 class CustomerService:
