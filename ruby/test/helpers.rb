@@ -57,8 +57,8 @@ module TestHelpers
 
   def build_cenc_tag_payload(public_pem, _private_pem, customer_id: 'CENC_CUST')
     public_key = OpenSSL::PKey::RSA.new(public_pem)
-    cek = ("\x01".b * Robocap::SDK::Config::CEK_BYTES)
-    wrapped = Robocap::SDK::RSAOAEP.wrap_cek(cek, public_key)
+    cek = ("\x01".b * RobocapCenc::SDK::Config::CEK_BYTES)
+    wrapped = RobocapCenc::SDK::RSAOAEP.wrap_cek(cek, public_key)
     {
       'cenc_customer_id' => customer_id,
       'cenc_cek_wrapped_b64' => Base64.strict_encode64(wrapped),
@@ -67,13 +67,13 @@ module TestHelpers
   end
 
   def import_rsa_vN(sdk_root, customer_id, public_pem, private_pem, version, rsa_bits: 2048)
-    meta = Robocap::SDK::RsaKeyMeta.new(
+    meta = RobocapCenc::SDK::RsaKeyMeta.new(
       rsa_key_version: version,
       effective_at: Time.utc(2026, 1, 1),
       device_id: customer_id,
       rsa_bits: rsa_bits,
     )
-    Robocap::SDK::KeyVault.new(sdk_root).import_rsa_version(
+    RobocapCenc::SDK::KeyVault.new(sdk_root).import_rsa_version(
       customer_id: customer_id,
       public_pem: public_pem,
       private_pem: private_pem,

@@ -3,4 +3,4 @@
 
 require 'robocap/sdk/cli'
 
-exit Robocap::SDK::CLI.run(ARGV.dup)
+exit RobocapCenc::SDK::CLI.run(ARGV.dup)

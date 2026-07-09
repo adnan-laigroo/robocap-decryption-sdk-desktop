@@ -5,7 +5,7 @@ require_relative 'config'
 require_relative 'key_vault'
 require_relative 'rsa_key_meta'
 
-module Robocap
+module RobocapCenc
   module SDK
     ImportRsaResult = Data.define(:customer_id, :rsa_key_version, :vault_rsa_dir)
 

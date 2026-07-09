@@ -14,7 +14,7 @@ require_relative 'sdk/rsa_import'
 require_relative 'sdk/rsa_delete'
 require_relative 'sdk/decrypt_cenc'
 
-module Robocap
+module RobocapCenc
   module SDK
     module_function
 

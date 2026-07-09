@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Robocap
+module RobocapCenc
   module SDK
     module ErrorCode
       ERR_CUSTOMER_NOT_FOUND        = 1001

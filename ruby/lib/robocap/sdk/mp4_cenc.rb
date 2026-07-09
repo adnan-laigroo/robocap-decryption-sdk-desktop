@@ -7,7 +7,7 @@ require_relative 'config'
 require_relative 'errors'
 require_relative 'ffmpeg_cli'
 
-module Robocap
+module RobocapCenc
   module SDK
     CencMp4Metadata = Data.define(:customer_id, :cek_wrapped, :kid_hex)
 

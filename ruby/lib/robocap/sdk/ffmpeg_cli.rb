@@ -6,7 +6,7 @@ require 'pathname'
 require_relative 'config'
 require_relative 'errors'
 
-module Robocap
+module RobocapCenc
   module SDK
     module FfmpegCli
       module_function

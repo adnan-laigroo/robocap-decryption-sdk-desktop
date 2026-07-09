@@ -6,10 +6,10 @@ require 'robocap/sdk/errors'
 require 'robocap/sdk/rsa_oaep'
 
 class TestRsaOaep < Minitest::Test
-  CEK_BYTES                 = Robocap::SDK::Config::CEK_BYTES
-  AES_KEY_BYTES             = Robocap::SDK::Config::AES_KEY_BYTES
-  RSA_2048_CIPHERTEXT_BYTES = Robocap::SDK::Config::RSA_2048_CIPHERTEXT_BYTES
-  RSA_CIPHERTEXT_BYTES      = Robocap::SDK::Config::RSA_CIPHERTEXT_BYTES
+  CEK_BYTES                 = RobocapCenc::SDK::Config::CEK_BYTES
+  AES_KEY_BYTES             = RobocapCenc::SDK::Config::AES_KEY_BYTES
+  RSA_2048_CIPHERTEXT_BYTES = RobocapCenc::SDK::Config::RSA_2048_CIPHERTEXT_BYTES
+  RSA_CIPHERTEXT_BYTES      = RobocapCenc::SDK::Config::RSA_CIPHERTEXT_BYTES
 
   def keypair(bits)
     rsa = OpenSSL::PKey::RSA.generate(bits, 0x10001)
@@ -19,11 +19,11 @@ class TestRsaOaep < Minitest::Test
   def test_rsa_wrap_unwrap_roundtrip_2048
     pub, priv = keypair(2048)
     payload = SecureRandom.bytes(CEK_BYTES)
-    wrapped = Robocap::SDK::RSAOAEP.wrap_key(
+    wrapped = RobocapCenc::SDK::RSAOAEP.wrap_key(
       payload, pub, plain_len: CEK_BYTES, cipher_len: RSA_2048_CIPHERTEXT_BYTES,
     )
     assert_equal RSA_2048_CIPHERTEXT_BYTES, wrapped.bytesize
-    unwrapped = Robocap::SDK::RSAOAEP.unwrap_key(
+    unwrapped = RobocapCenc::SDK::RSAOAEP.unwrap_key(
       wrapped, priv, plain_len: CEK_BYTES, cipher_len: RSA_2048_CIPHERTEXT_BYTES,
     )
     assert_equal payload, unwrapped
@@ -32,32 +32,32 @@ class TestRsaOaep < Minitest::Test
   def test_rsa_wrap_unwrap_roundtrip_4096
     pub, priv = keypair(4096)
     payload = SecureRandom.bytes(32)
-    wrapped = Robocap::SDK::RSAOAEP.wrap_key(payload, pub, plain_len: 32, cipher_len: 512)
+    wrapped = RobocapCenc::SDK::RSAOAEP.wrap_key(payload, pub, plain_len: 32, cipher_len: 512)
     assert_equal 512, wrapped.bytesize
     assert_equal payload,
-                 Robocap::SDK::RSAOAEP.unwrap_key(wrapped, priv, plain_len: 32, cipher_len: 512)
+                 RobocapCenc::SDK::RSAOAEP.unwrap_key(wrapped, priv, plain_len: 32, cipher_len: 512)
   end
 
   def test_wrap_unwrap_cek
     pub, priv = keypair(2048)
     cek = SecureRandom.bytes(CEK_BYTES)
-    wrapped = Robocap::SDK::RSAOAEP.wrap_cek(cek, pub)
+    wrapped = RobocapCenc::SDK::RSAOAEP.wrap_cek(cek, pub)
     assert_equal RSA_2048_CIPHERTEXT_BYTES, wrapped.bytesize
-    assert_equal cek, Robocap::SDK::RSAOAEP.unwrap_cek(wrapped, priv)
+    assert_equal cek, RobocapCenc::SDK::RSAOAEP.unwrap_cek(wrapped, priv)
   end
 
   def test_wrap_unwrap_aes_key
     pub, priv = keypair(4096)
     aes = SecureRandom.bytes(AES_KEY_BYTES)
-    wrapped = Robocap::SDK::RSAOAEP.wrap_aes_key(aes, pub)
+    wrapped = RobocapCenc::SDK::RSAOAEP.wrap_aes_key(aes, pub)
     assert_equal RSA_CIPHERTEXT_BYTES, wrapped.bytesize
-    assert_equal aes, Robocap::SDK::RSAOAEP.unwrap_aes_key(wrapped, priv)
+    assert_equal aes, RobocapCenc::SDK::RSAOAEP.unwrap_aes_key(wrapped, priv)
   end
 
   def test_wrap_rejects_wrong_plaintext_length
     pub, _ = keypair(2048)
     assert_raises(ArgumentError) do
-      Robocap::SDK::RSAOAEP.wrap_key(
+      RobocapCenc::SDK::RSAOAEP.wrap_key(
         SecureRandom.bytes(15), pub, plain_len: CEK_BYTES,
         cipher_len: RSA_2048_CIPHERTEXT_BYTES,
       )
@@ -66,32 +66,32 @@ class TestRsaOaep < Minitest::Test
 
   def test_unwrap_rejects_wrong_ciphertext_length
     _, priv = keypair(2048)
-    err = assert_raises(Robocap::SDK::Error) do
-      Robocap::SDK::RSAOAEP.unwrap_key(
+    err = assert_raises(RobocapCenc::SDK::Error) do
+      RobocapCenc::SDK::RSAOAEP.unwrap_key(
         'short', priv, plain_len: CEK_BYTES, cipher_len: RSA_2048_CIPHERTEXT_BYTES,
       )
     end
-    assert_equal Robocap::SDK::ErrorCode::ERR_K2_DECODE, err.code
+    assert_equal RobocapCenc::SDK::ErrorCode::ERR_K2_DECODE, err.code
   end
 
   def test_unwrap_with_wrong_key_raises
     _, priv = keypair(2048)
     bogus = SecureRandom.bytes(RSA_2048_CIPHERTEXT_BYTES)
-    err = assert_raises(Robocap::SDK::Error) do
-      Robocap::SDK::RSAOAEP.unwrap_key(
+    err = assert_raises(RobocapCenc::SDK::Error) do
+      RobocapCenc::SDK::RSAOAEP.unwrap_key(
         bogus, priv, plain_len: CEK_BYTES, cipher_len: RSA_2048_CIPHERTEXT_BYTES,
       )
     end
-    assert_equal Robocap::SDK::ErrorCode::ERR_K2_DECODE, err.code
+    assert_equal RobocapCenc::SDK::ErrorCode::ERR_K2_DECODE, err.code
   end
 
   def test_unwrap_cek_uses_cenc_error_codes
     _, priv = keypair(2048)
     bogus = SecureRandom.bytes(RSA_2048_CIPHERTEXT_BYTES)
-    err = assert_raises(Robocap::SDK::Error) do
-      Robocap::SDK::RSAOAEP.unwrap_cek(bogus, priv)
+    err = assert_raises(RobocapCenc::SDK::Error) do
+      RobocapCenc::SDK::RSAOAEP.unwrap_cek(bogus, priv)
     end
-    assert_equal Robocap::SDK::ErrorCode::ERR_CENC_CEKA_WRAP, err.code
+    assert_equal RobocapCenc::SDK::ErrorCode::ERR_CENC_CEKA_WRAP, err.code
   end
 
   def test_cross_language_compat_python_wrapped_2048
@@ -142,7 +142,7 @@ class TestRsaOaep < Minitest::Test
     pub  = OpenSSL::PKey::RSA.new(public_pem)
     priv = OpenSSL::PKey::RSA.new(private_pem)
     cek  = ("\x01".b * CEK_BYTES)
-    wrapped = Robocap::SDK::RSAOAEP.wrap_cek(cek, pub)
-    assert_equal cek, Robocap::SDK::RSAOAEP.unwrap_cek(wrapped, priv)
+    wrapped = RobocapCenc::SDK::RSAOAEP.wrap_cek(cek, pub)
+    assert_equal cek, RobocapCenc::SDK::RSAOAEP.unwrap_cek(wrapped, priv)
   end
 end

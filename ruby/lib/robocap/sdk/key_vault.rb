@@ -9,7 +9,7 @@ require_relative 'rsa_key_meta'
 require_relative 'rsa_oaep'
 require_relative 'vault_layout'
 
-module Robocap
+module RobocapCenc
   module SDK
     CekTrialUnwrapResult = Data.define(:cek, :rsa_key_version)
 

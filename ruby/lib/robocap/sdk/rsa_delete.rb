@@ -4,7 +4,7 @@ require 'pathname'
 require_relative 'config'
 require_relative 'key_vault'
 
-module Robocap
+module RobocapCenc
   module SDK
     DeleteRsaResult = Data.define(:customer_id, :folder_name, :key_dir)
 

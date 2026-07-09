@@ -9,7 +9,7 @@ require_relative 'ownership'
 require_relative 'ffmpeg_cli'
 require_relative 'vault_layout'
 
-module Robocap
+module RobocapCenc
   module SDK
     DecryptCencResult = Data.define(:output_path, :customer_id, :rsa_key_version, :kid_hex)
 

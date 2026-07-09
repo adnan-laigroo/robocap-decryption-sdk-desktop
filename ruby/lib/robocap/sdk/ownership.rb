@@ -6,7 +6,7 @@ require_relative 'config'
 require_relative 'errors'
 require_relative 'key_vault'
 
-module Robocap
+module RobocapCenc
   module SDK
     VerifiedKeyVersion = Data.define(:customer_id, :matched_rsa_key_version, :public_fingerprint)
 

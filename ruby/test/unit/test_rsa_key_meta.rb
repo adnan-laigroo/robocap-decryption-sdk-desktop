@@ -6,7 +6,7 @@ require 'robocap/sdk/rsa_key_meta'
 
 class TestRsaKeyMeta < Minitest::Test
   def make(**overrides)
-    Robocap::SDK::RsaKeyMeta.new(
+    RobocapCenc::SDK::RsaKeyMeta.new(
       rsa_key_version: overrides.fetch(:rsa_key_version, 1),
       effective_at: overrides.fetch(:effective_at, Time.utc(2026, 1, 1)),
       device_id: overrides.fetch(:device_id, 'DEV_TEST'),
@@ -15,12 +15,12 @@ class TestRsaKeyMeta < Minitest::Test
   end
 
   def test_default_rsa_bits_falls_back_to_config
-    meta = Robocap::SDK::RsaKeyMeta.new(
+    meta = RobocapCenc::SDK::RsaKeyMeta.new(
       rsa_key_version: 1,
       effective_at: Time.utc(2026, 1, 1),
       device_id: 'D',
     )
-    assert_equal Robocap::SDK::Config::RSA_BITS, meta.rsa_bits
+    assert_equal RobocapCenc::SDK::Config::RSA_BITS, meta.rsa_bits
   end
 
   def test_rejects_zero_version
@@ -42,7 +42,7 @@ class TestRsaKeyMeta < Minitest::Test
   def test_to_json_round_trip
     meta = make
     json = meta.to_json
-    parsed = Robocap::SDK::RsaKeyMeta.from_json(json)
+    parsed = RobocapCenc::SDK::RsaKeyMeta.from_json(json)
     assert_equal meta, parsed
   end
 
@@ -62,7 +62,7 @@ class TestRsaKeyMeta < Minitest::Test
       device_id: 'D2',
       rsa_bits: 4096,
     )
-    meta = Robocap::SDK::RsaKeyMeta.from_json(python_style)
+    meta = RobocapCenc::SDK::RsaKeyMeta.from_json(python_style)
     assert_equal 2, meta.rsa_key_version
     assert_equal 'D2', meta.device_id
     assert_equal 4096, meta.rsa_bits

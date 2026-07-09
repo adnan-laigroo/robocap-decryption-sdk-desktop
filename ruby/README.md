@@ -32,6 +32,20 @@ bundle exec exe/robocap-decryption-sdk delete-rsa  --help
 bundle exec exe/robocap-decryption-sdk decrypt-cenc --help
 ```
 
+## Ruby API
+
+```ruby
+require 'robocap/sdk'
+
+RobocapCenc::SDK.decrypt_cenc_mp4(...)
+```
+
+## Changelog
+
+### 2.0.0
+
+BREAKING: Ruby namespace renamed `Robocap::SDK` -> `RobocapCenc::SDK` to avoid colliding with host apps that define a top-level `Robocap` constant. Gem name, require path, and CLI executable are unchanged. Ruby API consumers must update `Robocap::SDK::*` references to `RobocapCenc::SDK::*`.
+
 ## Verified against the Python SDK
 
 This Ruby gem reads and writes the same on-disk vault and CENC MP4 format

@@ -2,7 +2,7 @@
 
 require 'pathname'
 
-module Robocap
+module RobocapCenc
   module SDK
     module Config
       VAULT_KEYS_DIR  = 'vault/keys'

@@ -4,7 +4,7 @@ require 'json'
 require 'time'
 require_relative 'config'
 
-module Robocap
+module RobocapCenc
   module SDK
     class RsaKeyMeta < Data.define(:rsa_key_version, :effective_at, :device_id, :rsa_bits)
       def initialize(rsa_key_version:, effective_at:, device_id:, rsa_bits: Config::RSA_BITS)

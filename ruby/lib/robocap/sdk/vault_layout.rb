@@ -5,7 +5,7 @@ require 'pathname'
 require 'tempfile'
 require_relative 'errors'
 
-module Robocap
+module RobocapCenc
   module SDK
     module VaultLayout
       module_function

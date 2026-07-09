@@ -6,7 +6,7 @@ require 'pathname'
 require 'time'
 require_relative '../sdk'
 
-module Robocap
+module RobocapCenc
   module SDK
     module CLI
       module_function
@@ -75,7 +75,7 @@ module Robocap
           device_id: opts[:device_id] || opts[:customer_id],
           rsa_bits: opts[:rsa_bits],
         )
-        result = Robocap::SDK.import_rsa_key_version(
+        result = RobocapCenc::SDK.import_rsa_key_version(
           customer_id: opts[:customer_id],
           public_pem: opts[:public_key].binread,
           private_pem: opts[:private_key].binread,
@@ -100,7 +100,7 @@ module Robocap
         end.parse!(argv)
 
         require_opts!(opts, %i[customer_id rsa_key_version])
-        result = Robocap::SDK.delete_rsa_key_version(
+        result = RobocapCenc::SDK.delete_rsa_key_version(
           customer_id: opts[:customer_id],
           rsa_key_version: opts[:rsa_key_version],
           sdk_root: opts[:sdk_root],
@@ -127,7 +127,7 @@ module Robocap
 
         require_opts!(opts, %i[mp4_path private_key output_dir])
         opts[:output_dir].mkpath
-        result = Robocap::SDK.decrypt_cenc_mp4(
+        result = RobocapCenc::SDK.decrypt_cenc_mp4(
           mp4_path: opts[:mp4_path],
           user_private_pem: opts[:private_key].binread,
           output_dir: opts[:output_dir],

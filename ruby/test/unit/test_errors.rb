@@ -40,30 +40,30 @@ class TestErrors < Minitest::Test
   def test_error_code_integers_match_python
     EXPECTED_CODES.each do |name, value|
       assert_equal value,
-                   Robocap::SDK::ErrorCode.const_get(name),
+                   RobocapCenc::SDK::ErrorCode.const_get(name),
                    "ErrorCode::#{name} value mismatch"
     end
   end
 
   def test_error_code_count_is_30
-    int_consts = Robocap::SDK::ErrorCode.constants.select do |c|
-      Robocap::SDK::ErrorCode.const_get(c).is_a?(Integer)
+    int_consts = RobocapCenc::SDK::ErrorCode.constants.select do |c|
+      RobocapCenc::SDK::ErrorCode.const_get(c).is_a?(Integer)
     end
     assert_equal 30, int_consts.length
   end
 
   def test_name_for_returns_constant_name
     assert_equal 'ERR_CUSTOMER_NOT_FOUND',
-                 Robocap::SDK::ErrorCode.name_for(1001)
+                 RobocapCenc::SDK::ErrorCode.name_for(1001)
   end
 
   def test_name_for_unknown_code
-    assert_equal 'ERR_UNKNOWN_9999', Robocap::SDK::ErrorCode.name_for(9999)
+    assert_equal 'ERR_UNKNOWN_9999', RobocapCenc::SDK::ErrorCode.name_for(9999)
   end
 
   def test_error_message_includes_code_name
-    err = Robocap::SDK::Error.new(
-      code: Robocap::SDK::ErrorCode::ERR_CUSTOMER_NOT_FOUND,
+    err = RobocapCenc::SDK::Error.new(
+      code: RobocapCenc::SDK::ErrorCode::ERR_CUSTOMER_NOT_FOUND,
       message: 'no such customer',
     )
     assert_match(/ERR_CUSTOMER_NOT_FOUND/, err.message)
@@ -71,7 +71,7 @@ class TestErrors < Minitest::Test
   end
 
   def test_error_carries_code_and_detail
-    err = Robocap::SDK::Error.new(
+    err = RobocapCenc::SDK::Error.new(
       code: 6001,
       message: 'io failure',
       detail: { path: '/x/y' },
@@ -81,7 +81,7 @@ class TestErrors < Minitest::Test
   end
 
   def test_error_to_h_matches_python_to_dict_shape
-    err = Robocap::SDK::Error.new(code: 6001, message: 'io failure', detail: { p: 1 })
+    err = RobocapCenc::SDK::Error.new(code: 6001, message: 'io failure', detail: { p: 1 })
     h = err.to_h
     assert_equal 6001, h[:code]
     assert_equal 'ERR_VAULT_IO', h[:error]
@@ -90,7 +90,7 @@ class TestErrors < Minitest::Test
   end
 
   def test_error_to_h_with_nil_detail
-    err = Robocap::SDK::Error.new(code: 6001, message: 'x')
+    err = RobocapCenc::SDK::Error.new(code: 6001, message: 'x')
     assert_nil err.to_h[:detail]
   end
 end

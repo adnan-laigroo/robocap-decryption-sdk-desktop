@@ -4,7 +4,7 @@ require_relative 'lib/robocap/sdk/version'
 
 Gem::Specification.new do |s|
   s.name        = 'robocap-decryption-sdk'
-  s.version     = Robocap::SDK::VERSION
+  s.version     = RobocapCenc::SDK::VERSION
   s.summary     = 'Offline import of RSA keys and decrypt of CENC-encrypted MP4 files.'
   s.description = 'Ruby port of the Robocap CENC decryption SDK. Reads the same on-disk vault and MP4 format as the Python SDK.'
   s.authors     = ['Frodobots']

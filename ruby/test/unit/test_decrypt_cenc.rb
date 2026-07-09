@@ -27,10 +27,10 @@ class TestDecryptCenc < Minitest::Test
   end
 
   def stub_pipeline(tags, &block)
-    meta = Robocap::SDK::Mp4Cenc.parse_cenc_metadata_from_tags(tags)
-    Robocap::SDK::Mp4Cenc.stub :load_cenc_metadata, ->(_mp4, **_opts) { meta } do
-      Robocap::SDK::FfmpegCli.stub :resolve_ffmpeg_executable, ->(_x = nil) { 'ffmpeg' } do
-        Robocap::SDK::FfmpegCli.stub :open3_capture3, ->(*_args) { ['', '', Struct.new(:exitstatus).new(0)] } do
+    meta = RobocapCenc::SDK::Mp4Cenc.parse_cenc_metadata_from_tags(tags)
+    RobocapCenc::SDK::Mp4Cenc.stub :load_cenc_metadata, ->(_mp4, **_opts) { meta } do
+      RobocapCenc::SDK::FfmpegCli.stub :resolve_ffmpeg_executable, ->(_x = nil) { 'ffmpeg' } do
+        RobocapCenc::SDK::FfmpegCli.stub :open3_capture3, ->(*_args) { ['', '', Struct.new(:exitstatus).new(0)] } do
           block.call
         end
       end
@@ -43,7 +43,7 @@ class TestDecryptCenc < Minitest::Test
       TestHelpers::EMBEDDED_CENC_PUBLIC_PEM, TestHelpers::EMBEDDED_CENC_PRIVATE_PEM, customer_id: 'CENC_CUST',
     )
     result = stub_pipeline(tags) do
-      Robocap::SDK::DecryptCenc.call(
+      RobocapCenc::SDK::DecryptCenc.call(
         mp4_path: @mp4, user_private_pem: TestHelpers::EMBEDDED_CENC_PRIVATE_PEM,
         output_dir: @out, sdk_root: @tmp,
       )
@@ -62,7 +62,7 @@ class TestDecryptCenc < Minitest::Test
     # The user's private key is v1; ownership verifies any matching archived
     # key, and the wrapped CEK can only be unwrapped by v2.
     result = stub_pipeline(tags) do
-      Robocap::SDK::DecryptCenc.call(
+      RobocapCenc::SDK::DecryptCenc.call(
         mp4_path: @mp4, user_private_pem: priv_v1, output_dir: @out, sdk_root: @tmp,
       )
     end
@@ -74,14 +74,14 @@ class TestDecryptCenc < Minitest::Test
     pub_v2, priv_v2 = generate_rsa_keypair(bits: 2048)
     import_rsa_vN(@tmp, 'CUST', pub_v2, priv_v2, 2)
     tags = build_cenc_tag_payload(pub_v1, priv_v1, customer_id: 'CUST')
-    err = assert_raises(Robocap::SDK::Error) do
+    err = assert_raises(RobocapCenc::SDK::Error) do
       stub_pipeline(tags) do
-        Robocap::SDK::DecryptCenc.call(
+        RobocapCenc::SDK::DecryptCenc.call(
           mp4_path: @mp4, user_private_pem: priv_v2, output_dir: @out, sdk_root: @tmp,
         )
       end
     end
-    assert_equal Robocap::SDK::ErrorCode::ERR_CENC_CEKA_TRIAL_FAILED, err.code
+    assert_equal RobocapCenc::SDK::ErrorCode::ERR_CENC_CEKA_TRIAL_FAILED, err.code
   end
 
   def test_decrypt_customer_not_in_vault
@@ -89,14 +89,14 @@ class TestDecryptCenc < Minitest::Test
     tags = build_cenc_tag_payload(
       TestHelpers::EMBEDDED_CENC_PUBLIC_PEM, TestHelpers::EMBEDDED_CENC_PRIVATE_PEM, customer_id: 'OTHER',
     )
-    err = assert_raises(Robocap::SDK::Error) do
+    err = assert_raises(RobocapCenc::SDK::Error) do
       stub_pipeline(tags) do
-        Robocap::SDK::DecryptCenc.call(
+        RobocapCenc::SDK::DecryptCenc.call(
           mp4_path: @mp4, user_private_pem: TestHelpers::EMBEDDED_CENC_PRIVATE_PEM,
           output_dir: @out, sdk_root: @tmp,
         )
       end
     end
-    assert_equal Robocap::SDK::ErrorCode::ERR_CUSTOMER_NOT_FOUND, err.code
+    assert_equal RobocapCenc::SDK::ErrorCode::ERR_CUSTOMER_NOT_FOUND, err.code
   end
 end

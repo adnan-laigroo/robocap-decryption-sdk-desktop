@@ -5,7 +5,7 @@ require 'securerandom'
 require_relative 'config'
 require_relative 'errors'
 
-module Robocap
+module RobocapCenc
   module SDK
     module RSAOAEP
       module_function
