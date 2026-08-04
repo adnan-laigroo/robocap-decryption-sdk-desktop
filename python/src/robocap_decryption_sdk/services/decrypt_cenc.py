@@ -8,7 +8,11 @@ from robocap_decryption_sdk.auth.ownership import verify_customer_private_key
 from robocap_decryption_sdk.config import DEFAULT_SDK_ROOT
 from robocap_decryption_sdk.errors import ErrorCode, RobocapError
 from robocap_decryption_sdk.io.ffmpeg_cli import decrypt_cenc_copy
-from robocap_decryption_sdk.io.mp4_cenc import load_cenc_metadata
+from robocap_decryption_sdk.io.mp4_cenc import (
+    CencMp4Metadata,
+    load_cenc_metadata,
+    verify_session_device_id_from_metadata,
+)
 from robocap_decryption_sdk.vault.key_vault import KeyVault
 from robocap_decryption_sdk.vault.layout import ensure_private_dir
 
@@ -32,14 +36,18 @@ def decrypt_cenc_mp4(
     user_private_pem: bytes,
     output_dir: Path,
     *,
+    metadata: CencMp4Metadata | None = None,
     sdk_root: Path | None = None,
+    session_device_id: str | None = None,
     ffprobe_executable: str | None = None,
     ffmpeg_executable: str | None = None,
 ) -> DecryptCencResult:
-    meta = load_cenc_metadata(
+    meta = metadata or load_cenc_metadata(
         mp4_path,
         ffprobe_executable=ffprobe_executable,
     )
+    if session_device_id is not None:
+        verify_session_device_id_from_metadata(session_device_id, meta)
 
     root = sdk_root or DEFAULT_SDK_ROOT
     vault = KeyVault(root)

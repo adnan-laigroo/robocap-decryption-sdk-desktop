@@ -6,7 +6,12 @@ from unittest.mock import patch
 
 import pytest
 
-from robocap_customer.error_mapper import MSG_PREFLIGHT_KEY, CustomerFacingError
+from robocap_customer.error_mapper import (
+    MSG_DEVICE_BINDING_MISMATCH,
+    MSG_PREFLIGHT_KEY,
+    CustomerFacingError,
+)
+from robocap_decryption_sdk.io.mp4_cenc import CencMp4Metadata
 from robocap_customer.preflight import preflight_cenc_mp4
 from robocap_customer.scanner import scan_cenc_mp4
 from robocap_customer.vault_validator import (
@@ -105,3 +110,29 @@ def test_preflight_cenc_mp4_key_mismatch(customer_setup, tmp_path: Path) -> None
                 customer_setup["private_pem"],
             )
         assert exc.value.message == MSG_PREFLIGHT_KEY
+
+
+def test_preflight_robowrist_session_binding_mismatch(customer_setup, tmp_path: Path) -> None:
+    mp4 = tmp_path / "robowrist_clip.mp4"
+    mp4.write_bytes(b"x")
+    meta = CencMp4Metadata(
+        customer_id=customer_setup["customer_id"],
+        cek_wrapped=b"\x00" * 256,
+        kid_hex=None,
+        product_line="robowrist",
+        tag_deviceid="wrong_wrist_id",
+        tag_host=customer_setup["customer_id"],
+    )
+
+    with patch(
+        "robocap_customer.preflight.load_cenc_metadata",
+        return_value=meta,
+    ):
+        with pytest.raises(CustomerFacingError) as exc:
+            preflight_cenc_mp4(
+                mp4,
+                customer_setup["sdk_root"],
+                customer_setup["private_pem"],
+                session_device_id="wrong_wrist_id",
+            )
+        assert exc.value.message == MSG_DEVICE_BINDING_MISMATCH

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -7,6 +8,11 @@ from pathlib import Path
 from robocap_decryption_sdk.models.key_meta import RsaKeyMeta
 from robocap_decryption_sdk.services.rsa_import import ImportRsaResult, import_rsa_key_version
 
+from robocap_customer.device_keys import (
+    register_user_private_version,
+    vault_user_private_path,
+    vault_user_private_path_for_version,
+)
 from robocap_customer import console
 from robocap_customer.bootstrap import init_customer_logging
 from robocap_customer.config import CustomerConfig
@@ -201,6 +207,17 @@ def run_import(session: ImportSessionInput) -> ImportRsaResult:
         ),
         sdk_root=vault_root,
     )
+
+    version_pem = vault_user_private_path_for_version(
+        vault_root, session.customer_id, result.rsa_key_version
+    )
+    version_pem.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(session.user_private_key_path, version_pem)
+    register_user_private_version(vault_root, session.customer_id, result.rsa_key_version)
+
+    legacy_pem = vault_user_private_path(vault_root, session.customer_id)
+    legacy_pem.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(session.user_private_key_path, legacy_pem)
 
     cfg = CustomerConfig(
         customer_id=session.customer_id,

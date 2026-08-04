@@ -10,8 +10,8 @@ from robocap_customer.batch_decryptor import BatchResult, run_batch
 from robocap_customer.bootstrap import init_customer_logging
 from robocap_customer.config import CustomerConfig
 from robocap_customer.conflict_resolver import ConflictMode, ConflictResolver
-from robocap_customer.error_mapper import CustomerFacingError
-from robocap_customer.preflight import preflight_cenc_mp4
+from robocap_customer.error_mapper import CustomerFacingError, MSG_USER_PRIVATE_REQUIRED
+from robocap_customer.preflight import preflight_cenc_metadata
 from robocap_customer.scanner import scan_cenc_mp4
 from robocap_customer.session_files import copy_plain_db_files, scan_plain_db_files
 from robocap_customer.vault_validator import (
@@ -19,14 +19,16 @@ from robocap_customer.vault_validator import (
     validate_output_writable,
     validate_vault_structure,
 )
+from robocap_decryption_sdk.io.mp4_cenc import load_cenc_metadata
 
 
 @dataclass
 class SessionInput:
     vault_root: Path
-    user_private_key_path: Path
+    user_private_key_path: Path | None
     input_root: Path
     output_root: Path
+    session_device_id: str | None = None
 
 
 def _prompt_path(
@@ -123,13 +125,34 @@ def run_decrypt_session(
     session: SessionInput,
     conflict_resolver: ConflictResolver,
     *,
+    max_workers: int = 1,
+    progress_fn: Callable[[int, int, str], None] | None = None,
+    cancel_check: Callable[[], bool] | None = None,
+) -> BatchResult:
+    if session.user_private_key_path is None:
+        raise CustomerFacingError(MSG_USER_PRIVATE_REQUIRED)
+    private_pem = load_user_private_pem(session.user_private_key_path)
+    return run_decrypt_session_with_private_pem(
+        session,
+        private_pem,
+        conflict_resolver,
+        max_workers=max_workers,
+        progress_fn=progress_fn,
+        cancel_check=cancel_check,
+    )
+
+
+def run_decrypt_session_with_private_pem(
+    session: SessionInput,
+    private_pem: bytes,
+    conflict_resolver: ConflictResolver,
+    *,
+    max_workers: int = 1,
     progress_fn: Callable[[int, int, str], None] | None = None,
     cancel_check: Callable[[], bool] | None = None,
 ) -> BatchResult:
     validate_vault_structure(session.vault_root)
     validate_output_writable(session.output_root)
-
-    private_pem = load_user_private_pem(session.user_private_key_path)
 
     console.info("Scanning for encrypted MP4 files…")
     enc_paths = scan_cenc_mp4(session.input_root)
@@ -155,9 +178,17 @@ def run_decrypt_session(
         return BatchResult(total=0, succeeded=0, failed=0, skipped=0)
 
     console.info(f"Running preflight check on {len(enc_paths)} file(s)…")
+    metadata_by_path = {}
     for index, mp4_path in enumerate(enc_paths, start=1):
         console.info(f"Preflight [{index}/{len(enc_paths)}]: {mp4_path.name}")
-        preflight_cenc_mp4(mp4_path, session.vault_root, private_pem)
+        meta = load_cenc_metadata(mp4_path)
+        metadata_by_path[mp4_path] = meta
+        preflight_cenc_metadata(
+            meta,
+            session.vault_root,
+            private_pem,
+            session_device_id=session.session_device_id,
+        )
 
     batch_result = run_batch(
         enc_paths,
@@ -166,6 +197,9 @@ def run_decrypt_session(
         input_root=session.input_root,
         output_root=session.output_root,
         conflict_resolver=conflict_resolver,
+        session_device_id=session.session_device_id,
+        metadata_by_path=metadata_by_path,
+        max_workers=max_workers,
         progress_fn=progress_fn,
         cancel_check=cancel_check,
     )

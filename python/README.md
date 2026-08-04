@@ -39,12 +39,30 @@ pip install -e ".[web]"
 ## Package Layout
 
 ```text
-src/robocap_decryption_sdk/       Core SDK: vault layout, RSA import/delete, CENC decrypt
-src/robocap_customer/  Interactive customer CLI workflows and batch decrypt
-src/robocap_web/       FastAPI app, auth middleware, task store, SSE progress
-scripts/               Utility scripts for key generation/import/diagnostics
-tests/                 Unit tests for SDK, customer flows, and web endpoints
+src/robocap_decryption_sdk/   Core SDK: vault layout, RSA import/delete, CENC decrypt
+src/robocap_customer/         Interactive customer CLI workflows and batch decrypt
+src/robocap_web/              FastAPI app, auth middleware, task store, SSE progress
+scripts/                      Utility scripts for key generation/import/diagnostics
+tests/                        Unit tests for SDK, customer flows, and web endpoints
 ```
+
+## Device ID and MP4 tags (v2)
+
+Decrypt does **not** take a customer/device id from the caller. The vault directory name is resolved from MP4 format tags by **filename prefix**:
+
+| Filename prefix | Vault directory ID source |
+|-----------------|---------------------------|
+| `robocap_*` | `cenc_customer_id`, else **`deviceid`** |
+| `robowrist_*` | **`host`** (required) |
+| other | same as `robocap_*` |
+
+Also required: `cenc_cek_wrapped_b64` (Base64 of 256-byte RSA-OAEP wrapped CEK).
+
+Import/delete CLI still use `--customer-id`; that value is the **vault directory name** and should match the Device ID that videos will resolve to (`deviceid` / `host` as above).
+
+**Breaking in 2.0.0:** the old fallback tag `username` is removed. Videos that only carry `username` must be re-tagged or renamed/processed under the rules above.
+
+This Python package is **local-vault only** (no cloud key fetch / cloud decrypt path).
 
 ## Core SDK CLI
 
@@ -52,7 +70,7 @@ The `robocap-decryption-sdk` command is the lower-level JSON-emitting CLI. It is
 
 ```bash
 robocap-decryption-sdk import-rsa \
-  --customer-id frodobot_123 \
+  --customer-id DEVICE_ID \
   --public-key /path/to/rsa_public_spki.pem \
   --private-key /path/to/rsa_private_pkcs8.pem \
   --rsa-key-version 1
@@ -63,7 +81,7 @@ robocap-decryption-sdk decrypt-cenc \
   --output-dir /path/to/output
 
 robocap-decryption-sdk delete-rsa \
-  --customer-id frodobot_123 \
+  --customer-id DEVICE_ID \
   --rsa-key-version 1
 ```
 
@@ -113,7 +131,7 @@ Main operations:
 - `import_rsa_key_version(...)`
 - `delete_rsa_key_version(...)`
 - `delete_rsa_key_dir(...)`
-- `decrypt_cenc_mp4(...)`
+- `decrypt_cenc_mp4(...)` — reads Device ID from MP4 tags; optional `session_device_id` binding
 - `verify_customer_private_key(...)`
 
 SDK errors are raised as `RobocapError` and include structured error codes for CLI/API callers.

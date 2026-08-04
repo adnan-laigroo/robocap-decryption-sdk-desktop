@@ -16,6 +16,7 @@ from robocap_customer.error_mapper import (
     CustomerFacingError,
     to_delete_message,
 )
+from robocap_customer.device_keys import remove_user_private_version_from_index
 from robocap_customer.key_bundle import validate_customer_id_input
 from robocap_customer.vault_bootstrap import assert_vault_writable
 from robocap_customer.vault_validator import validate_vault_structure
@@ -121,14 +122,27 @@ def collect_delete_input() -> DeleteSessionInput | None:
     )
 
 
+def _version_from_key_dir(key_dir: Path) -> int | None:
+    name = key_dir.name
+    if name.startswith("v") and name[1:].isdigit():
+        return int(name[1:])
+    return None
+
+
 def run_delete(session: DeleteSessionInput) -> DeleteRsaResult:
     assert_vault_writable(session.vault_root)
     validate_vault_structure(session.vault_root)
-    return delete_rsa_key_dir(
+    version = _version_from_key_dir(session.key_dir)
+    result = delete_rsa_key_dir(
         session.customer_id,
         session.key_dir,
         sdk_root=session.vault_root,
     )
+    if version is not None:
+        remove_user_private_version_from_index(
+            session.vault_root, session.customer_id, version
+        )
+    return result
 
 
 def _print_success(result: DeleteRsaResult) -> None:

@@ -5,6 +5,7 @@ import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from robocap_decryption_sdk.config import RSA_2048_CIPHERTEXT_BYTES, validate_customer_id
 from robocap_decryption_sdk.errors import ErrorCode, RobocapError
@@ -13,7 +14,10 @@ from robocap_decryption_sdk.io.ffmpeg_cli import resolve_ffprobe_executable
 _CEKA_TAG = "cenc_cek_wrapped_b64"
 _CENC_WRAPPED_ALGO_TAG = "cenc_wrapped_algo"
 _CUSTOMER_ID_TAG = "cenc_customer_id"
-_CUSTOMER_ID_FALLBACK_TAG = "username"
+_CUSTOMER_ID_FALLBACK_TAG = "deviceid"
+_HOST_TAG = "host"
+
+ProductLine = Literal["robocap", "robowrist", "legacy"]
 
 CENC_STRIP_TAGS_ON_DECRYPT = (
     _CEKA_TAG,
@@ -26,6 +30,9 @@ class CencMp4Metadata:
     customer_id: str
     cek_wrapped: bytes
     kid_hex: str | None
+    product_line: ProductLine = "legacy"
+    tag_deviceid: str | None = None
+    tag_host: str | None = None
 
 
 def _parse_ffprobe_json(raw: str) -> dict:
@@ -102,14 +109,23 @@ def read_format_tags(
     return {str(key): str(value) for key, value in tags.items()}
 
 
-def _resolve_customer_id(tags: dict[str, str]) -> str:
-    raw = tags.get(_CUSTOMER_ID_TAG) or tags.get(_CUSTOMER_ID_FALLBACK_TAG)
-    if not raw or not raw.strip():
-        raise RobocapError(
-            ErrorCode.ERR_CENC_TAGS_MISSING,
-            f"Missing CENC customer id: {_CUSTOMER_ID_TAG} or {_CUSTOMER_ID_FALLBACK_TAG} tag required",
-        )
-    customer_id = raw.strip()
+def detect_product_line(mp4_path: Path) -> ProductLine:
+    stem = mp4_path.stem.lower()
+    if stem.startswith("robowrist_"):
+        return "robowrist"
+    if stem.startswith("robocap_"):
+        return "robocap"
+    return "legacy"
+
+
+def _tag_value(tags: dict[str, str], key: str) -> str | None:
+    raw = tags.get(key)
+    if raw and raw.strip():
+        return raw.strip()
+    return None
+
+
+def _validate_customer_id_string(customer_id: str) -> str:
     try:
         validate_customer_id(customer_id)
     except ValueError as exc:
@@ -120,6 +136,95 @@ def _resolve_customer_id(tags: dict[str, str]) -> str:
     return customer_id
 
 
+def _resolve_deviceid_from_tags(tags: dict[str, str]) -> str:
+    raw = tags.get(_CUSTOMER_ID_TAG) or tags.get(_CUSTOMER_ID_FALLBACK_TAG)
+    if not raw or not raw.strip():
+        raise RobocapError(
+            ErrorCode.ERR_CENC_TAGS_MISSING,
+            f"Missing CENC customer id: {_CUSTOMER_ID_TAG} or {_CUSTOMER_ID_FALLBACK_TAG} tag required",
+        )
+    return _validate_customer_id_string(raw.strip())
+
+
+def _resolve_vault_customer_id(tags: dict[str, str], product_line: ProductLine) -> str:
+    if product_line == "robowrist":
+        host = _tag_value(tags, _HOST_TAG)
+        if host is None:
+            raise RobocapError(
+                ErrorCode.ERR_CENC_TAGS_MISSING,
+                f"Missing CENC host tag for robowrist: {_HOST_TAG} required",
+            )
+        return _validate_customer_id_string(host)
+    return _resolve_deviceid_from_tags(tags)
+
+
+def verify_session_device_id(
+    session_device_id: str,
+    tags: dict[str, str],
+    product_line: ProductLine,
+) -> None:
+    normalized = session_device_id.strip()
+    if not normalized:
+        raise RobocapError(
+            ErrorCode.ERR_DEVICE_BINDING_MISMATCH,
+            "Session device id is empty",
+        )
+    try:
+        validate_customer_id(normalized)
+    except ValueError as exc:
+        raise RobocapError(
+            ErrorCode.ERR_DEVICE_BINDING_MISMATCH,
+            f"Invalid session device id: {normalized!r}",
+        ) from exc
+
+    if product_line == "robowrist":
+        expected = _tag_value(tags, _HOST_TAG)
+        field = _HOST_TAG
+    else:
+        expected = _tag_value(tags, _CUSTOMER_ID_TAG) or _tag_value(
+            tags, _CUSTOMER_ID_FALLBACK_TAG
+        )
+        field = _CUSTOMER_ID_TAG
+
+    if expected is None or expected != normalized:
+        raise RobocapError(
+            ErrorCode.ERR_DEVICE_BINDING_MISMATCH,
+            f"Session device id does not match MP4 {field} tag",
+        )
+
+
+def verify_session_device_id_from_metadata(
+    session_device_id: str,
+    meta: CencMp4Metadata,
+) -> None:
+    normalized = session_device_id.strip()
+    if not normalized:
+        raise RobocapError(
+            ErrorCode.ERR_DEVICE_BINDING_MISMATCH,
+            "Session device id is empty",
+        )
+    try:
+        validate_customer_id(normalized)
+    except ValueError as exc:
+        raise RobocapError(
+            ErrorCode.ERR_DEVICE_BINDING_MISMATCH,
+            f"Invalid session device id: {normalized!r}",
+        ) from exc
+
+    if meta.product_line == "robowrist":
+        expected = meta.tag_host
+        field = _HOST_TAG
+    else:
+        expected = meta.tag_deviceid
+        field = _CUSTOMER_ID_FALLBACK_TAG
+
+    if expected is None or expected != normalized:
+        raise RobocapError(
+            ErrorCode.ERR_DEVICE_BINDING_MISMATCH,
+            f"Session device id does not match MP4 {field} tag",
+        )
+
+
 def _has_customer_id_source(tags: dict[str, str]) -> bool:
     for key in (_CUSTOMER_ID_TAG, _CUSTOMER_ID_FALLBACK_TAG):
         value = tags.get(key)
@@ -128,14 +233,35 @@ def _has_customer_id_source(tags: dict[str, str]) -> bool:
     return False
 
 
-def parse_cenc_metadata_from_tags(tags: dict[str, str]) -> CencMp4Metadata:
+def _has_required_tags_for_product(tags: dict[str, str], product_line: ProductLine) -> bool:
+    if not tags.get(_CEKA_TAG):
+        return False
+    if product_line == "robowrist":
+        return _tag_value(tags, _HOST_TAG) is not None and _has_customer_id_source(tags)
+    return _has_customer_id_source(tags)
+
+
+def parse_cenc_metadata_from_tags(
+    tags: dict[str, str],
+    *,
+    mp4_path: Path | None = None,
+    product_line: ProductLine | None = None,
+) -> CencMp4Metadata:
     if not tags.get(_CEKA_TAG):
         raise RobocapError(
             ErrorCode.ERR_CENC_TAGS_MISSING,
             f"Missing CENC tags: {_CEKA_TAG}",
         )
 
-    customer_id = _resolve_customer_id(tags)
+    pl: ProductLine
+    if product_line is not None:
+        pl = product_line
+    elif mp4_path is not None:
+        pl = detect_product_line(mp4_path)
+    else:
+        pl = "legacy"
+
+    customer_id = _resolve_vault_customer_id(tags, pl)
 
     try:
         cek_wrapped = base64.b64decode(tags[_CEKA_TAG], validate=True)
@@ -159,6 +285,10 @@ def parse_cenc_metadata_from_tags(tags: dict[str, str]) -> CencMp4Metadata:
         customer_id=customer_id,
         cek_wrapped=cek_wrapped,
         kid_hex=kid_hex,
+        product_line=pl,
+        tag_deviceid=_tag_value(tags, _CUSTOMER_ID_FALLBACK_TAG)
+        or _tag_value(tags, _CUSTOMER_ID_TAG),
+        tag_host=_tag_value(tags, _HOST_TAG),
     )
 
 
@@ -167,8 +297,12 @@ def load_cenc_metadata(
     *,
     ffprobe_executable: str | None = None,
 ) -> CencMp4Metadata:
+    mp4_path = mp4_path.expanduser().resolve()
     tags = read_format_tags(mp4_path, ffprobe_executable=ffprobe_executable)
-    return parse_cenc_metadata_from_tags(tags)
+    product_line = detect_product_line(mp4_path)
+    return parse_cenc_metadata_from_tags(
+        tags, mp4_path=mp4_path, product_line=product_line
+    )
 
 
 def has_cenc_tags(
@@ -177,7 +311,9 @@ def has_cenc_tags(
     ffprobe_executable: str | None = None,
 ) -> bool:
     try:
+        mp4_path = mp4_path.expanduser().resolve()
         tags = read_format_tags(mp4_path, ffprobe_executable=ffprobe_executable)
     except RobocapError:
         return False
-    return bool(tags.get(_CEKA_TAG)) and _has_customer_id_source(tags)
+    product_line = detect_product_line(mp4_path)
+    return _has_required_tags_for_product(tags, product_line)

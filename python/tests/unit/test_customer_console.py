@@ -63,5 +63,5 @@ def test_customer_messages_pass_console_sanitize(message: str) -> None:
 
 
 def test_vault_path_with_rsa_segment_not_sanitized() -> None:
-    path_msg = "Keys stored at: /home/user/vault/vault/keys/customer-1/rsa/v2"
+    path_msg = "Keys stored at: /home/z/vault/vault/keys/openai-1/rsa/v2"
     assert console._sanitize(path_msg) == path_msg
