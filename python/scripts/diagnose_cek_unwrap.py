@@ -48,8 +48,13 @@ def main() -> int:
         return 1
 
     wrapped = base64.b64decode(wrapped_b64, validate=True)
-    customer = tags.get("cenc_customer_id") or tags.get("username") or "(unknown)"
-    print(f"customer tag: {customer}")
+    customer = (
+        tags.get("cenc_customer_id")
+        or tags.get("deviceid")
+        or tags.get("host")
+        or "(unknown)"
+    )
+    print(f"customer/device tag: {customer}")
     print(f"wrapped CEK length: {len(wrapped)} bytes")
 
     private_key = serialization.load_pem_private_key(priv_path.read_bytes(), password=None)

@@ -4,7 +4,7 @@ from robocap_decryption_sdk.services.decrypt_cenc import DecryptCencResult, decr
 from robocap_decryption_sdk.services.rsa_delete import DeleteRsaResult, delete_rsa_key_dir, delete_rsa_key_version
 from robocap_decryption_sdk.services.rsa_import import ImportRsaResult, import_rsa_key_version
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 __all__ = [
     "__version__",

@@ -12,6 +12,13 @@ MSG_INVALID_KEY = "Key files are invalid or not 2048-bit keys."
 MSG_INVALID_CUSTOMER_ID = (
     "Customer ID is invalid. Use letters, numbers, underscore, or hyphen only."
 )
+MSG_USER_PRIVATE_REQUIRED = (
+    "User private key PEM path is required when bundle has no user_private.pem."
+)
+MSG_DEVICE_PRIVATE_KEY_MISSING = (
+    "User private key not found for this device ID. "
+    "Re-import keys or place user_private.pem under vault/keys/{device_id}/."
+)
 MSG_IMPORT_CONFLICT = (
     "This key version already exists in the vault. Contact support."
 )
@@ -31,6 +38,10 @@ MSG_CENC = "Video is missing CENC metadata or the key vault does not match."
 MSG_PREFLIGHT_KEY = (
     "Key vault does not match this video. "
     "Confirm the device public key matches the keys imported into the vault."
+)
+MSG_DEVICE_BINDING_MISMATCH = (
+    "Device ID does not match this video. "
+    "For robocap videos use the MP4 deviceid tag; for robowrist videos use the host tag."
 )
 MSG_DB_COPY_FAILED = "Session files could not be copied to the output directory."
 
@@ -130,7 +141,11 @@ def to_db_copy_message(exc: BaseException) -> str:
 
 
 def to_message(exc: BaseException) -> str:
+    if isinstance(exc, CustomerFacingError):
+        return exc.message
     if isinstance(exc, RobocapError):
+        if exc.code == ErrorCode.ERR_DEVICE_BINDING_MISMATCH:
+            return MSG_DEVICE_BINDING_MISMATCH
         if exc.code in _OWNERSHIP_CODES:
             return MSG_OWNERSHIP
         if exc.code in _CORRUPT_CODES:

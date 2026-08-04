@@ -16,6 +16,12 @@ from robocap_customer.error_mapper import (
     MSG_INVALID_KEY,
     to_import_message,
 )
+from robocap_customer.device_keys import (
+    load_user_private_index,
+    user_private_index_path,
+    vault_user_private_path,
+    vault_user_private_path_for_version,
+)
 from robocap_customer.import_prompts import ImportSessionInput, run_import
 from robocap_customer.key_bundle import (
     PRIVATE_PEM_NAME,
@@ -130,13 +136,31 @@ def test_run_import_v1_creates_vault_and_config(tmp_path: Path) -> None:
     assert cfg.customer_id == "frodobot_123"
     assert cfg.vault_root == vault_root.resolve()
     assert cfg.user_private_key_path == (bundle / USER_PRIVATE_PEM_NAME).resolve()
+    vault_pem = vault_user_private_path(vault_root, "frodobot_123")
+    assert vault_pem.is_file()
+    assert vault_pem.read_bytes() == priv
+    version_pem = vault_user_private_path_for_version(vault_root, "frodobot_123", 1)
+    assert version_pem.is_file()
+    assert version_pem.read_bytes() == priv
+    index = load_user_private_index(vault_root, "frodobot_123")
+    assert index is not None
+    assert index.active_version == 1
+    assert user_private_index_path(vault_root, "frodobot_123").is_file()
 
 
 def test_run_import_auto_increments_version(tmp_path: Path) -> None:
     vault_root = tmp_path / "vault"
-    ensure_vault_layout(vault_root)
     pub_v1, priv_v1 = generate_rsa_keypair(bits=2048)
-    import_cenc_rsa_v1(vault_root, "frodobot_123", pub_v1, priv_v1)
+    bundle_v1 = tmp_path / "keys_v1"
+    write_key_bundle(bundle_v1, pub_v1, priv_v1)
+    run_import(
+        ImportSessionInput(
+            vault_root=vault_root,
+            customer_id="frodobot_123",
+            key_bundle_dir=bundle_v1,
+            user_private_key_path=bundle_v1 / USER_PRIVATE_PEM_NAME,
+        )
+    )
 
     pub_v2, priv_v2 = generate_rsa_keypair(bits=2048)
     bundle = tmp_path / "keys_v2"
@@ -151,6 +175,16 @@ def test_run_import_auto_increments_version(tmp_path: Path) -> None:
     result = run_import(session)
     assert result.rsa_key_version == 2
     assert KeyVault(vault_root).public_pem("frodobot_123", 2).is_file()
+    v1_pem = vault_user_private_path_for_version(vault_root, "frodobot_123", 1)
+    v2_pem = vault_user_private_path_for_version(vault_root, "frodobot_123", 2)
+    assert v1_pem.is_file()
+    assert v2_pem.is_file()
+    assert v1_pem.read_bytes() == priv_v1
+    assert v2_pem.read_bytes() == priv_v2
+    assert v1_pem.read_bytes() != v2_pem.read_bytes()
+    index = load_user_private_index(vault_root, "frodobot_123")
+    assert index is not None
+    assert index.active_version == 2
 
 
 def test_import_error_mapping() -> None:

@@ -8,10 +8,12 @@ import pytest
 from robocap_decryption_sdk.errors import ErrorCode, RobocapError
 from robocap_decryption_sdk.config import RSA_2048_CIPHERTEXT_BYTES
 from robocap_decryption_sdk.io.mp4_cenc import (
+    detect_product_line,
     has_cenc_tags,
     load_cenc_metadata,
     parse_cenc_metadata_from_tags,
     read_format_tags,
+    verify_session_device_id_from_metadata,
 )
 from robocap_decryption_sdk.services.decrypt_cenc import decrypt_cenc_mp4
 from robocap_decryption_sdk.vault.key_vault import KeyVault
@@ -79,19 +81,19 @@ def test_parse_missing_customer_id():
     assert exc.value.code == ErrorCode.ERR_CENC_TAGS_MISSING
 
 
-def test_parse_customer_id_from_username_fallback():
+def test_parse_customer_id_from_deviceid_fallback():
     public_pem, private_pem = generate_rsa_keypair(bits=2048)
     tags = build_cenc_tag_payload(public_pem, private_pem, customer_id="CENC_CUST")
     del tags["cenc_customer_id"]
-    tags["username"] = "frodobot"
+    tags["deviceid"] = "d38abc4c26cf1e23"
     meta = parse_cenc_metadata_from_tags(tags)
-    assert meta.customer_id == "frodobot"
+    assert meta.customer_id == "d38abc4c26cf1e23"
 
 
-def test_parse_prefers_cenc_customer_id_over_username():
+def test_parse_prefers_cenc_customer_id_over_deviceid():
     public_pem, private_pem = generate_rsa_keypair(bits=2048)
     tags = build_cenc_tag_payload(public_pem, private_pem, customer_id="PRIMARY_ID")
-    tags["username"] = "frodobot"
+    tags["deviceid"] = "d38abc4c26cf1e23"
     meta = parse_cenc_metadata_from_tags(tags)
     assert meta.customer_id == "PRIMARY_ID"
 
@@ -122,12 +124,12 @@ def test_parse_wrapped_length():
     assert exc.value.code == ErrorCode.ERR_CENC_CEKA_WRAP
 
 
-def test_has_cenc_tags_accepts_username_fallback(tmp_path):
+def test_has_cenc_tags_accepts_deviceid_fallback(tmp_path):
     mp4 = tmp_path / "clip.mp4"
     mp4.write_bytes(b"x")
     tags = {
         "cenc_cek_wrapped_b64": "abc",
-        "username": "frodobot",
+        "deviceid": "d38abc4c26cf1e23",
     }
 
     ffprobe_patch, run_patch = _mock_ffprobe(tags)
@@ -187,6 +189,7 @@ def _decrypt_with_mocks(
             mp4,
             user_pem,
             out_dir,
+            metadata=meta,
             sdk_root=sdk_root,
             ffmpeg_executable="ffmpeg",
         )
@@ -298,6 +301,143 @@ def test_decrypt_customer_not_in_vault(sdk_root, tmp_path):
     assert exc.value.code == ErrorCode.ERR_CUSTOMER_NOT_FOUND
 
 
+def test_detect_product_line_from_filename(tmp_path):
+    assert detect_product_line(tmp_path / "robocap_clip.mp4") == "robocap"
+    assert detect_product_line(tmp_path / "Robowrist_Session.mp4") == "robowrist"
+    assert detect_product_line(tmp_path / "segment.mp4") == "legacy"
+
+
+def test_robowrist_uses_host_for_vault_customer_id():
+    public_pem, private_pem = generate_rsa_keypair(bits=2048)
+    vault_id = "d38abc4c26cf1e23"
+    wrist_id = "robowrist_device_xyz"
+    tags = build_cenc_tag_payload(public_pem, private_pem, customer_id=wrist_id)
+    del tags["cenc_customer_id"]
+    tags["deviceid"] = wrist_id
+    tags["host"] = vault_id
+
+    meta = parse_cenc_metadata_from_tags(
+        tags, product_line="robowrist"
+    )
+    assert meta.customer_id == vault_id
+    assert meta.tag_deviceid == wrist_id
+    assert meta.tag_host == vault_id
+
+
+def test_robowrist_missing_host_fails():
+    public_pem, private_pem = generate_rsa_keypair(bits=2048)
+    tags = build_cenc_tag_payload(public_pem, private_pem, customer_id="wrist_only")
+    del tags["cenc_customer_id"]
+    tags["deviceid"] = "wrist_only"
+
+    with pytest.raises(RobocapError) as exc:
+        parse_cenc_metadata_from_tags(tags, product_line="robowrist")
+    assert exc.value.code == ErrorCode.ERR_CENC_TAGS_MISSING
+
+
+def test_verify_session_robowrist_requires_host_match():
+    public_pem, private_pem = generate_rsa_keypair(bits=2048)
+    vault_id = "d38abc4c26cf1e23"
+    tags = build_cenc_tag_payload(public_pem, private_pem, customer_id="wrist_id")
+    del tags["cenc_customer_id"]
+    tags["deviceid"] = "wrist_id"
+    tags["host"] = vault_id
+    meta = parse_cenc_metadata_from_tags(tags, product_line="robowrist")
+
+    verify_session_device_id_from_metadata(vault_id, meta)
+
+    with pytest.raises(RobocapError) as exc:
+        verify_session_device_id_from_metadata("wrist_id", meta)
+    assert exc.value.code == ErrorCode.ERR_DEVICE_BINDING_MISMATCH
+
+
+def test_load_cenc_metadata_robowrist_prefix(tmp_path):
+    mp4 = tmp_path / "robowrist_session.mp4"
+    mp4.write_bytes(b"fake")
+    public_pem, private_pem = generate_rsa_keypair(bits=2048)
+    vault_id = "vault_host_id"
+    tags = build_cenc_tag_payload(public_pem, private_pem, customer_id="wrist_tag")
+    del tags["cenc_customer_id"]
+    tags["deviceid"] = "wrist_tag"
+    tags["host"] = vault_id
+
+    ffprobe_patch, run_patch = _mock_ffprobe(tags)
+    with ffprobe_patch, run_patch:
+        meta = load_cenc_metadata(mp4)
+
+    assert meta.product_line == "robowrist"
+    assert meta.customer_id == vault_id
+
+
+def test_has_cenc_tags_robowrist_requires_host(tmp_path):
+    mp4 = tmp_path / "robowrist_clip.mp4"
+    mp4.write_bytes(b"x")
+    tags = {
+        "cenc_cek_wrapped_b64": "abc",
+        "deviceid": "wrist_only",
+    }
+
+    ffprobe_patch, run_patch = _mock_ffprobe(tags)
+    with ffprobe_patch, run_patch:
+        assert has_cenc_tags(mp4) is False
+
+    tags["host"] = "vault_host"
+    ffprobe_patch2, run_patch2 = _mock_ffprobe(tags)
+    with ffprobe_patch2, run_patch2:
+        assert has_cenc_tags(mp4) is True
+
+
+def test_decrypt_robowrist_uses_host_vault(sdk_root, tmp_path):
+    vault_id = "d38abc4c26cf1e23"
+    import_cenc_rsa_v1(
+        sdk_root,
+        vault_id,
+        EMBEDDED_CENC_PUBLIC_PEM,
+        EMBEDDED_CENC_PRIVATE_PEM,
+    )
+
+    mp4 = tmp_path / "robowrist_segment.mp4"
+    mp4.write_bytes(b"encrypted")
+    out_dir = tmp_path / "out"
+    tags = build_cenc_tag_payload(
+        EMBEDDED_CENC_PUBLIC_PEM,
+        EMBEDDED_CENC_PRIVATE_PEM,
+        customer_id="different_wrist_id",
+    )
+    del tags["cenc_customer_id"]
+    tags["deviceid"] = "different_wrist_id"
+    tags["host"] = vault_id
+
+    meta = parse_cenc_metadata_from_tags(tags, product_line="robowrist")
+
+    class FfmpegResult:
+        returncode = 0
+        stdout = b""
+        stderr = b""
+
+    with patch(
+        "robocap_decryption_sdk.services.decrypt_cenc.load_cenc_metadata",
+        return_value=meta,
+    ), patch(
+        "robocap_decryption_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
+        return_value="ffmpeg",
+    ), patch(
+        "robocap_decryption_sdk.io.ffmpeg_cli.subprocess.run",
+        return_value=FfmpegResult(),
+    ):
+        result = decrypt_cenc_mp4(
+            mp4,
+            EMBEDDED_CENC_PRIVATE_PEM,
+            out_dir,
+            sdk_root=sdk_root,
+            session_device_id=vault_id,
+            ffmpeg_executable="ffmpeg",
+        )
+
+    assert result.customer_id == vault_id
+    assert result.output_path == out_dir / "robowrist_segment.mp4"
+
+
 def test_old_three_tag_payload_fails():
     public_pem, private_pem = generate_rsa_keypair(bits=2048)
     tags = {
@@ -310,3 +450,47 @@ def test_old_three_tag_payload_fails():
     with pytest.raises(RobocapError) as exc:
         parse_cenc_metadata_from_tags(tags)
     assert exc.value.code == ErrorCode.ERR_CENC_TAGS_MISSING
+
+
+def test_decrypt_cenc_mp4_uses_supplied_metadata(tmp_path, sdk_root):
+    customer_id = "CENC_CUST"
+    import_cenc_rsa_v1(
+        sdk_root,
+        customer_id,
+        EMBEDDED_CENC_PUBLIC_PEM,
+        EMBEDDED_CENC_PRIVATE_PEM,
+    )
+    mp4 = tmp_path / "clip.mp4"
+    mp4.write_bytes(b"encrypted")
+    out_dir = tmp_path / "out"
+    tags = build_cenc_tag_payload(
+        EMBEDDED_CENC_PUBLIC_PEM,
+        EMBEDDED_CENC_PRIVATE_PEM,
+        customer_id=customer_id,
+    )
+    meta = parse_cenc_metadata_from_tags(tags)
+
+    class FfmpegResult:
+        returncode = 0
+        stdout = b""
+        stderr = b""
+
+    with patch(
+        "robocap_decryption_sdk.services.decrypt_cenc.load_cenc_metadata",
+    ) as mock_load_meta, patch(
+        "robocap_decryption_sdk.io.ffmpeg_cli.resolve_ffmpeg_executable",
+        return_value="ffmpeg",
+    ), patch(
+        "robocap_decryption_sdk.io.ffmpeg_cli.subprocess.run",
+        return_value=FfmpegResult(),
+    ):
+        decrypt_cenc_mp4(
+            mp4,
+            EMBEDDED_CENC_PRIVATE_PEM,
+            out_dir,
+            metadata=meta,
+            sdk_root=sdk_root,
+            ffmpeg_executable="ffmpeg",
+        )
+
+    mock_load_meta.assert_not_called()
