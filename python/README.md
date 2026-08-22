@@ -199,6 +199,17 @@ generate_cenc_rsa_2048.py
 import_cenc_keys.py
 diagnose_cek_unwrap.py
 robocap_customer_decrypt.py
+bulk_decrypt.py
+```
+
+`bulk_decrypt.py` is the unattended, resumable, multi-device sweep for large
+backlogs. Each file's device and RSA key version come from its own tags using
+the resolution rules above, so one run covers every device whose keys are in
+the vault:
+
+```bash
+./scripts/bulk_decrypt.py --root /mnt/footage --output-dir /mnt/plain --workers 16
+./scripts/bulk_decrypt.py --root /mnt/footage --in-place --workers 16
 ```
 
 Prefer the installed console scripts for normal use; keep these scripts for manual verification and troubleshooting.
