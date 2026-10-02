@@ -17,9 +17,11 @@ jobs:
           - os: macos-26-intel
             name: macOS-x86_64
             artifact: RobocapDecryptor-macos-x86_64
+            dmg: RobocapDecryptor-macos-x86_64.dmg
           - os: macos-26
             name: macOS-arm64
             artifact: RobocapDecryptor-macos-arm64
+            dmg: RobocapDecryptor-macos-arm64.dmg
           - os: windows-latest
             name: Windows-x64
             artifact: RobocapDecryptor-windows-x64
@@ -47,11 +49,11 @@ jobs:
         if: runner.os == 'macOS'
         working-directory: python/UI
         run: |
-          hdiutil create -volname RobocapDecryptor -srcfolder dist/RobocapDecryptor.app -ov -format UDZO dist/RobocapDecryptor.dmg
+          hdiutil create -volname RobocapDecryptor -srcfolder dist/RobocapDecryptor.app -ov -format UDZO "dist/${{ matrix.dmg }}"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ runner.os == 'Windows' && 'python/UI/dist/RobocapDecryptor.exe' || 'python/UI/dist/RobocapDecryptor.dmg' }}
+          path: ${{ runner.os == 'Windows' && 'python/UI/dist/RobocapDecryptor.exe' || format('python/UI/dist/{0}', matrix.dmg) }}
           if-no-files-found: error
           retention-days: 30
 
@@ -72,5 +74,5 @@ jobs:
           generate_release_notes: true
           files: |
             release-assets/RobocapDecryptor-windows-x64/RobocapDecryptor.exe
-            release-assets/RobocapDecryptor-macos-x86_64/RobocapDecryptor.dmg
-            release-assets/RobocapDecryptor-macos-arm64/RobocapDecryptor.dmg
+            release-assets/RobocapDecryptor-macos-x86_64/RobocapDecryptor-macos-x86_64.dmg
+            release-assets/RobocapDecryptor-macos-arm64/RobocapDecryptor-macos-arm64.dmg

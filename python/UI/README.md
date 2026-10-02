@@ -17,7 +17,7 @@ Watch the log for progress and the final counts. The input videos stay in place,
 
 For a permanent download, open the repository's **Releases** page and download the asset for your platform. Each `ui-v*` tag builds the Windows executable and macOS disk images and attaches them to a GitHub Release. Manual workflow runs also create downloadable Actions artifacts, which expire after 30 days.
 
-- **macOS:** open `RobocapDecryptor.dmg`, drag the app to Applications, then open it. Builds are provided separately for Intel (`x86_64`) and Apple Silicon (`arm64`). Unsigned builds may require Control-click → Open on first launch.
+- **macOS:** download `RobocapDecryptor-macos-x86_64.dmg` for Intel or `RobocapDecryptor-macos-arm64.dmg` for Apple Silicon. Open the DMG, drag the app to Applications, then open it. Unsigned builds may require Control-click → Open on first launch.
 - **Windows:** download and run `RobocapDecryptor.exe`. Windows SmartScreen may show a warning because the build is not code-signed.
 
 The CI builds are unsigned and unnotarized. macOS users may need to approve the app in Privacy & Security. Signing and notarization require maintainer-owned Apple certificates and credentials.
@@ -85,7 +85,7 @@ git tag ui-v1.0.0
 git push personal ui-v1.0.0
 ```
 
-The tag starts builds for macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. After all builds succeed, Actions creates a GitHub Release with `RobocapDecryptor.exe` and both macOS `.dmg` files attached. Use a new tag for each release version. Local build outputs are under `python/UI/dist/`.
+The tag starts builds for macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. After all builds succeed, Actions creates a GitHub Release with `RobocapDecryptor.exe`, `RobocapDecryptor-macos-x86_64.dmg`, and `RobocapDecryptor-macos-arm64.dmg` attached. Use a new tag for each release version. Local build outputs are under `python/UI/dist/`.
 
 ## Install and use
 
