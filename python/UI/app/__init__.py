@@ -1,0 +1,1 @@
+"""Robocap Decryptor desktop application."""

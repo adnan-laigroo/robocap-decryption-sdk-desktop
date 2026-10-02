@@ -1,0 +1,59 @@
+name: Build Robocap Decryptor
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["ui-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-26-intel
+            name: macOS-x86_64
+            artifact: RobocapDecryptor-macos-x86_64
+          - os: macos-26
+            name: macOS-arm64
+            artifact: RobocapDecryptor-macos-arm64
+          - os: windows-latest
+            name: Windows-x64
+            artifact: RobocapDecryptor-windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install FFmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+      - name: Install FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg --no-progress -y
+      - name: Install application dependencies
+        working-directory: python/UI
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Build application
+        working-directory: python/UI
+        run: python -m PyInstaller --noconfirm --clean RobocapDecryptor.spec
+      - name: Create macOS DMG
+        if: runner.os == 'macOS'
+        working-directory: python/UI
+        run: |
+          hdiutil create -volname RobocapDecryptor -srcfolder dist/RobocapDecryptor.app -ov -format UDZO dist/RobocapDecryptor.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            python/UI/dist/RobocapDecryptor.app
+            python/UI/dist/RobocapDecryptor.dmg
+            python/UI/dist/RobocapDecryptor.exe
+          if-no-files-found: ignore
+          retention-days: 30
