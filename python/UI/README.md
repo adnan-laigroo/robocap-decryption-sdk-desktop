@@ -15,7 +15,7 @@ Watch the log for progress and the final counts. The input videos stay in place,
 
 ## Install
 
-Download the platform artifact from the **Build Robocap Decryptor** GitHub Actions run:
+For a permanent download, open the repository's **Releases** page and download the asset for your platform. Each `ui-v*` tag builds the Windows executable and macOS disk images and attaches them to a GitHub Release. Manual workflow runs also create downloadable Actions artifacts, which expire after 30 days.
 
 - **macOS:** open `RobocapDecryptor.dmg`, drag the app to Applications, then open it. Builds are provided separately for Intel (`x86_64`) and Apple Silicon (`arm64`). Unsigned builds may require Control-click → Open on first launch.
 - **Windows:** download and run `RobocapDecryptor.exe`. Windows SmartScreen may show a warning because the build is not code-signed.
@@ -76,7 +76,16 @@ The Windows executable is `python\UI\dist\RobocapDecryptor.exe`. Windows builds 
 
 ## Build Windows and macOS with GitHub Actions
 
-After pushing the branch, open **Actions → Build Robocap Decryptor → Run workflow**, choose the branch, and start the run. You can also push a tag named `ui-v*` (for example `ui-v1.0.0`) to start it automatically. The workflow builds macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. Download the corresponding workflow artifact from the completed run. It contains `RobocapDecryptor.exe` for Windows or `RobocapDecryptor.dmg` for macOS; local build outputs are under `python/UI/dist/`.
+For a temporary build, open **Actions → Build Robocap Decryptor → Run workflow**, choose the branch, and start the run. Download the Windows or macOS artifact from the completed run; Actions artifacts expire after 30 days.
+
+To build and keep the downloads on the repository's **Releases** page, push a version tag from the repository root:
+
+```bash
+git tag ui-v1.0.0
+git push personal ui-v1.0.0
+```
+
+The tag starts builds for macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. After all builds succeed, Actions creates a GitHub Release with `RobocapDecryptor.exe` and both macOS `.dmg` files attached. Use a new tag for each release version. Local build outputs are under `python/UI/dist/`.
 
 ## Install and use
 
