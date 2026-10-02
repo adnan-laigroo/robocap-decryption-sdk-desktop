@@ -2,6 +2,17 @@
 
 Desktop GUI for importing user-provided RSA key pairs into the Robocap SDK vault and decrypting folders of MP4 files with the SDK's upstream `python/scripts/bulk_decrypt.py` workflow. The application packages the SDK and FFmpeg tools. It never includes user keys.
 
+## Bulk decrypt quick start
+
+1. Install or open the app for your operating system (steps below).
+2. Put each device's matching public and private PEM files together in one key folder.
+3. In the app, choose **Keys Folder** and click **Import Keys**.
+4. Choose the folder that contains the MP4 files as **Input Folder**.
+5. Choose a different **Output Folder** outside the input folder.
+6. Set the number of workers and click **Start Decryption**.
+
+Watch the log for progress and the final counts. The input videos stay in place, and decrypted copies go to the output folder. The output folder must not be inside the input folder.
+
 ## Install
 
 Download the platform artifact from the **Build Robocap Decryptor** GitHub Actions run:
