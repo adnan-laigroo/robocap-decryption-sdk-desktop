@@ -31,7 +31,7 @@ The app runs the repository's real `python/scripts/bulk_decrypt.py`, which uses 
 
 ## Build locally on macOS
 
-Run these commands from the repository root:
+Run these commands from the repository root on the Mac architecture you want to build for. PyInstaller makes a native build; a local Mac build does not create a Windows `.exe`.
 
 ```bash
 brew install ffmpeg
@@ -48,11 +48,43 @@ hdiutil create -volname RobocapDecryptor \
 
 The `.app` and `.dmg` are under `python/UI/dist/`. Run `python main.py` from `python/UI` for source development.
 
+## Build the Windows `.exe` locally
+
+Run these commands in **PowerShell on Windows** from the repository root. Install FFmpeg for the build machine first and make sure both `ffmpeg.exe` and `ffprobe.exe` are on `PATH`; they are bundled into the app, so end users do not need FFmpeg.
+
+```powershell
+cd python\UI
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m PyInstaller --noconfirm --clean RobocapDecryptor.spec
+```
+
+The Windows executable is `python\UI\dist\RobocapDecryptor.exe`. Windows builds must run on Windows; a Mac build does not produce a Windows executable.
+
 ## Build Windows and macOS with GitHub Actions
 
-Push the branch and use **Actions → Build Robocap Decryptor → Run workflow**, or push a tag named `ui-v*` (for example `ui-v1.0.0`). The workflow builds macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. Download the corresponding workflow artifacts. Windows output is `RobocapDecryptor.exe` under `python/UI/dist/`; macOS output is `RobocapDecryptor.dmg` there.
+After pushing the branch, open **Actions → Build Robocap Decryptor → Run workflow**, choose the branch, and start the run. You can also push a tag named `ui-v*` (for example `ui-v1.0.0`) to start it automatically. The workflow builds macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. Download the corresponding workflow artifact from the completed run. It contains `RobocapDecryptor.exe` for Windows or `RobocapDecryptor.dmg` for macOS; local build outputs are under `python/UI/dist/`.
 
-Windows native builds must run on Windows; the macOS build instructions do not produce a Windows executable.
+## Install and use
+
+### macOS
+
+1. Download the macOS `.dmg` artifact for your processor (`x86_64` for Intel or `arm64` for Apple Silicon).
+2. Open the DMG and drag `RobocapDecryptor.app` into Applications.
+3. Open the app. Because builds are unsigned and unnotarized, macOS may ask you to approve it in Privacy & Security or open it using Control-click → **Open**.
+4. Select your key folder and click **Import Keys**.
+5. Choose an input folder and an output folder outside it, set the worker count, and click **Start Decryption**.
+
+### Windows
+
+1. Download the Windows x64 artifact and extract it if your browser saved it as a ZIP.
+2. Run `RobocapDecryptor.exe`. Windows SmartScreen may show a warning because the build is not code-signed.
+3. Select your key folder and click **Import Keys**.
+4. Choose an input folder and an output folder outside it, set the worker count, and click **Start Decryption**.
+
+Both packaged applications include the SDK, FFmpeg, and ffprobe. End users do not need Python or development tools. Keep the matching public and private PEM files together in the selected key folder; private keys are never bundled with the application.
 
 ## Troubleshooting
 
