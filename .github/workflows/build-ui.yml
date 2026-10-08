@@ -46,10 +46,12 @@ jobs:
             Select-Object -First 1
           if (-not $ffmpeg) { throw 'Could not find the installed FFmpeg bin directory.' }
           $ffprobe = Join-Path $ffmpeg.DirectoryName 'ffprobe.exe'
-          & $ffmpeg.FullName -version | Select-Object -First 1
+          $ffmpegVersion = & $ffmpeg.FullName -version
           if ($LASTEXITCODE -ne 0) { throw 'ffmpeg.exe failed to start on the build runner.' }
-          & $ffprobe -version | Select-Object -First 1
+          $ffprobeVersion = & $ffprobe -version
           if ($LASTEXITCODE -ne 0) { throw 'ffprobe.exe failed to start on the build runner.' }
+          Write-Output ($ffmpegVersion | Select-Object -First 1)
+          Write-Output ($ffprobeVersion | Select-Object -First 1)
           Add-Content -Path $env:GITHUB_ENV -Value "ROBOCAP_FFMPEG_DIR=$($ffmpeg.DirectoryName)"
       - name: Install application dependencies
         working-directory: python/UI
