@@ -78,9 +78,21 @@ def bump(key: str) -> None:
 
 
 def record(done_path: Path, rel: str, outcome: str, detail: str) -> None:
+    # Keep each result on one line so full subprocess diagnostics remain
+    # readable in both the GUI log and the resumable done-file.
+    detail = " ".join(detail.split())
     with _done_lock:
         with open(done_path, "a", encoding="utf-8") as handle:
             handle.write(f"{rel}\t{outcome}\t{detail}\n")
+
+
+def report(done_path: Path, rel: str, outcome: str, detail: str = "") -> None:
+    detail = " ".join(detail.split())
+    record(done_path, rel, outcome, detail)
+    message = f"{outcome.upper()}: {rel}"
+    if detail:
+        message += f" — {detail}"
+    log(message)
 
 
 def load_done(done_path: Path) -> set[str]:
@@ -152,14 +164,21 @@ def process(
     try:
         try:
             tags = read_format_tags(path)
-        except RobocapError:
-            record(done_path, rel, "unreadable", "no readable moov (truncated file)")
+        except RobocapError as exc:
+            # Preserve the actual ffprobe/tag parser diagnostic. The old
+            # generic "truncated file" message hid unrelated failures too.
+            report(
+                done_path,
+                rel,
+                "unreadable",
+                f"{exc.code.name}: {exc.message}",
+            )
             bump("unreadable")
             return
 
         if not tags.get(CEK_TAG):
             # Decrypt strips this tag, so a file without it is already plaintext.
-            record(done_path, rel, "already_plain", "")
+            report(done_path, rel, "already_plain")
             bump("already_plain")
             return
 
@@ -175,7 +194,7 @@ def process(
             problem = validate_output(result.output_path, in_size)
             if problem is not None:
                 result.output_path.unlink(missing_ok=True)
-                record(done_path, rel, "failed", problem)
+                report(done_path, rel, "failed", problem)
                 bump("failed")
                 return
         else:
@@ -187,14 +206,14 @@ def process(
                 )
                 problem = validate_output(result.output_path, in_size)
                 if problem is not None:
-                    record(done_path, rel, "failed", problem)
+                    report(done_path, rel, "failed", problem)
                     bump("failed")
                     return
                 os.replace(result.output_path, path)
             finally:
                 shutil.rmtree(staging, ignore_errors=True)
 
-        record(
+        report(
             done_path,
             rel,
             "decrypted",
@@ -202,10 +221,10 @@ def process(
         )
         bump("decrypted")
     except RobocapError as exc:
-        record(done_path, rel, "failed", f"{exc.code.name}: {exc.message[:140]}")
+        report(done_path, rel, "failed", f"{exc.code.name}: {exc.message}")
         bump("failed")
     except Exception as exc:  # keep one bad file from stopping the sweep
-        record(done_path, rel, "failed", f"{type(exc).__name__}: {str(exc)[:140]}")
+        report(done_path, rel, "failed", f"{type(exc).__name__}: {exc}")
         bump("failed")
 
 
