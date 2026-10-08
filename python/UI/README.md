@@ -17,9 +17,8 @@ Watch the log for progress and the final counts. The input videos stay in place,
 
 For a permanent download, open the repository's **Releases** page and download the asset for your platform. Each `ui-v*` tag builds the Windows executable and macOS disk images and attaches them to a GitHub Release. Manual workflow runs also create downloadable Actions artifacts, which expire after 30 days.
 
-- **macOS:** download `RobocapDecryptor-macos-x86_64.dmg` for Intel or `RobocapDecryptor-macos-arm64.dmg` for Apple Silicon. Open the DMG, drag the app to Applications, then open it. Unsigned builds may require Control-click → Open on first launch.
+- **macOS:** download `RobocapDecryptor-macos-x86_64.dmg` for Intel or `RobocapDecryptor-macos-arm64.dmg` for Apple Silicon. Open the DMG and drag the app to Applications. Because the release is unsigned and unnotarized, macOS may block its first launch. If you trust the official release, try opening it once, then go to **Apple menu → System Settings → Privacy & Security → Open Anyway** and confirm **Open**. You can also Control-click the app and choose **Open**.
 - **Windows:** download and run `RobocapDecryptor.exe`. Windows SmartScreen may show a warning because the build is not code-signed.
-
 The CI builds are unsigned and unnotarized. macOS users may need to approve the app in Privacy & Security. Signing and notarization require maintainer-owned Apple certificates and credentials. Windows builds bundle FFmpeg, ffprobe, and the FFmpeg DLLs; end users do not need to install FFmpeg, Python, or the SDK.
 
 ## Prepare your keys
@@ -67,6 +66,7 @@ Run these commands in **PowerShell on Windows** from the repository root. Instal
 cd python\UI
 choco install ffmpeg --no-progress -y
 $ffmpeg = Get-ChildItem "$env:ChocolateyInstall\lib" -Filter ffmpeg.exe -File -Recurse | Where-Object { Test-Path (Join-Path $_.DirectoryName 'ffprobe.exe') } | Select-Object -First 1
+if (-not $ffmpeg) { throw 'Could not find the FFmpeg bin folder containing ffmpeg.exe and ffprobe.exe.' }
 $env:ROBOCAP_FFMPEG_DIR = $ffmpeg.DirectoryName
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -85,7 +85,7 @@ To build and keep the downloads on the repository's **Releases** page, push a ve
 
 ```bash
 git tag ui-v1.0.0
-git push personal ui-v1.0.0
+git push origin ui-v1.0.0
 ```
 
 The tag starts builds for macOS Intel, macOS Apple Silicon, and Windows x64 on native runners. After all builds succeed, Actions creates a GitHub Release with `RobocapDecryptor.exe`, `RobocapDecryptor-macos-x86_64.dmg`, and `RobocapDecryptor-macos-arm64.dmg` attached. Use a new tag for each release version. Local build outputs are under `python/UI/dist/`.
@@ -112,3 +112,7 @@ Both packaged applications include the SDK, FFmpeg, and ffprobe. The Windows app
 ## Troubleshooting
 
 Application logs are written to `~/.robocap_decryptor/logs/`. The resumable bulk script's completion record is stored as `.robocap-decrypt-done.txt` in the selected output folder. Neither contains key material.
+
+- **A file says “already recorded as done”:** the app skips it because its relative path has a successful entry in the completion record. If you need to retry that file, remove only its line from `.robocap-decrypt-done.txt` in the output folder, then run decryption again.
+- **Output validation fails:** the app probes each decrypted output with bundled ffprobe. Current builds also check the video stream when the MP4 container does not report a duration. If ffprobe cannot read a video stream, the GUI log includes its exit code and any diagnostics; the original input remains unchanged.
+- **Windows says FFmpeg is missing:** download the current `RobocapDecryptor.exe` from Releases. The executable bundles FFmpeg, ffprobe, and their DLLs, so installing FFmpeg separately should not be necessary.
