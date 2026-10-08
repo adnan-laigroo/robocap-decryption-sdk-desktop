@@ -18,7 +18,9 @@ class KeyImporter:
 
         devices = {}
 
-        public_pattern = re.compile(r"(.+)_v(\d+)_public\.pem$")
+        # Accept both the SDK's original *_public.pem form and the
+        # *_public_key.pem form commonly used alongside *_private_key.pem.
+        public_pattern = re.compile(r"(.+)_v(\d+)_public(?:_key)?\.pem$")
         private_pattern = re.compile(r"(.+)_v(\d+)_private_key\.pem$")
 
         for pem in folder.glob("*.pem"):

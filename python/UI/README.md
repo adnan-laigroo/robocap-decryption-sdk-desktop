@@ -24,7 +24,7 @@ The CI builds are unsigned and unnotarized. macOS users may need to approve the 
 
 ## Prepare your keys
 
-Keep each device's matching public and private PEM files together in a folder. Names must follow the SDK convention, for example `DEVICE_v1_public.pem` and `DEVICE_v1_private_key.pem`; multiple devices and versions are supported. Select that folder in the GUI and click **Import Keys**.
+Keep each device's matching public and private PEM files together in the selected folder. The GUI accepts either `DEVICE_v1_public.pem` or `DEVICE_v1_public_key.pem` for the public key; the private key should be named `DEVICE_v1_private_key.pem`. The device ID and version must match across each pair, for example `camera123_v1_public_key.pem` with `camera123_v1_private_key.pem`. Multiple devices and versions are supported.
 
 Private keys are not bundled in the app, copied into its resources, or written to application logs. Import reads the selected files and the SDK stores its protected vault copy under `~/.robocap-sdk/vault/` (under your user home directory on Windows). The app stores only folder paths and worker count in `~/.robocap_decryptor/settings.json`.
 
