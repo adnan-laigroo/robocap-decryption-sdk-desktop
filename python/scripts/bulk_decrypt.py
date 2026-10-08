@@ -121,34 +121,98 @@ def ownership_pem(vault: KeyVault, customer_id: str) -> bytes:
     return pem
 
 
-def probe_duration(path: Path) -> float:
+def probe_duration(path: Path) -> tuple[float | None, bool, str | None]:
+    """Return duration, whether a video stream was found, and probe diagnostics."""
     exe = resolve_ffprobe_executable()
+    cmd = [
+        exe,
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration:stream=codec_type,duration",
+        "-show_format",
+        "-show_streams",
+        "-print_format",
+        "json",
+        str(path),
+    ]
     try:
         result = subprocess.run(
-            [exe, "-v", "error", "-show_format", "-print_format", "json", str(path)],
+            cmd,
             capture_output=True,
             check=False,
             timeout=180,
         )
-    except (OSError, subprocess.TimeoutExpired):
-        return 0.0
+    except OSError as exc:
+        return None, False, f"could not start {exe}: {type(exc).__name__}: {exc}"
+    except subprocess.TimeoutExpired as exc:
+        return None, False, f"{exe} timed out after {exc.timeout} seconds"
+
+    stdout = result.stdout.decode(errors="replace").strip()
+    stderr = result.stderr.decode(errors="replace").strip()
     if result.returncode != 0:
-        return 0.0
+        diagnostics = []
+        if stderr:
+            diagnostics.append(f"stderr: {stderr}")
+        if stdout:
+            diagnostics.append(f"stdout: {stdout}")
+        if not diagnostics:
+            diagnostics.append("ffprobe produced no diagnostic output")
+        return None, False, (
+            f"{exe} exited with code {result.returncode}; " + " | ".join(diagnostics)
+        )
     try:
-        return float(json.loads(result.stdout)["format"]["duration"])
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
-        return 0.0
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        return None, False, f"ffprobe returned invalid JSON ({exc}); stdout: {stdout}"
+
+    streams = payload.get("streams", [])
+    if not isinstance(streams, list):
+        streams = []
+    video_streams = [
+        stream for stream in streams
+        if isinstance(stream, dict) and stream.get("codec_type") == "video"
+    ]
+    format_info = payload.get("format", {})
+    candidates = []
+    if isinstance(format_info, dict):
+        candidates.append(format_info.get("duration"))
+    candidates.extend(stream.get("duration") for stream in video_streams)
+    candidates.extend(
+        stream.get("duration")
+        for stream in streams
+        if isinstance(stream, dict) and stream not in video_streams
+    )
+    for value in candidates:
+        try:
+            duration = float(value)
+        except (TypeError, ValueError):
+            continue
+        if duration > 0:
+            return duration, bool(video_streams), None
+
+    summary = [
+        f"{stream.get('codec_type', 'unknown')} duration={stream.get('duration', 'unavailable')}"
+        for stream in streams
+        if isinstance(stream, dict)
+    ]
+    detail = ", ".join(summary) if summary else "ffprobe returned no streams"
+    if stderr:
+        detail += f"; stderr: {stderr}"
+    return None, bool(video_streams), f"ffprobe succeeded but reported no duration ({detail})"
 
 
 def validate_output(out_path: Path, in_size: int) -> str | None:
     """Return a reason string when the decrypted file looks wrong, else None."""
-    duration = probe_duration(out_path)
-    if duration <= 0:
-        return "validation: decrypted file has no readable duration"
+    duration, has_video_stream, probe_problem = probe_duration(out_path)
     out_size = out_path.stat().st_size
     delta = abs(out_size - in_size)
     if delta > SIZE_FLOOR_BYTES and delta / in_size > SIZE_TOLERANCE:
         return f"validation: size {out_size} against input {in_size}"
+    if duration is None and not has_video_stream:
+        return f"validation: decrypted file has no readable video stream ({probe_problem})"
+    # Some playable MP4s expose a video stream but no container/stream duration.
+    # A parsed video stream plus the size check above is sufficient validation.
     return None
 
 
