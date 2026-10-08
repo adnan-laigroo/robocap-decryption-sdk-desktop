@@ -88,9 +88,26 @@ def read_format_tags(
 
     if result.returncode != 0:
         stderr = result.stderr.decode(errors="replace")
+        stdout = result.stdout.decode(errors="replace")
+        diagnostics = []
+        if stderr.strip():
+            diagnostics.append(f"stderr: {stderr.strip()}")
+        if stdout.strip():
+            diagnostics.append(f"stdout: {stdout.strip()}")
+        if not diagnostics:
+            diagnostics.append("ffprobe produced no diagnostic output")
         raise RobocapError(
             ErrorCode.ERR_CENC_FFPROBE_FAILED,
-            f"ffprobe failed: {stderr}",
+            f"ffprobe exited with code {result.returncode}; "
+            + " | ".join(diagnostics)
+            + f"; command: {json.dumps(cmd)}",
+            detail={
+                "path": str(mp4_path),
+                "exit_code": result.returncode,
+                "stderr": stderr,
+                "stdout": stdout,
+                "command": cmd,
+            },
         )
 
     payload = _parse_ffprobe_json(result.stdout.decode("utf-8"))
