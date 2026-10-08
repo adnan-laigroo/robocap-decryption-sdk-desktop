@@ -20,7 +20,7 @@ For a permanent download, open the repository's **Releases** page and download t
 - **macOS:** download `RobocapDecryptor-macos-x86_64.dmg` for Intel or `RobocapDecryptor-macos-arm64.dmg` for Apple Silicon. Open the DMG, drag the app to Applications, then open it. Unsigned builds may require Control-click → Open on first launch.
 - **Windows:** download and run `RobocapDecryptor.exe`. Windows SmartScreen may show a warning because the build is not code-signed.
 
-The CI builds are unsigned and unnotarized. macOS users may need to approve the app in Privacy & Security. Signing and notarization require maintainer-owned Apple certificates and credentials.
+The CI builds are unsigned and unnotarized. macOS users may need to approve the app in Privacy & Security. Signing and notarization require maintainer-owned Apple certificates and credentials. Windows builds bundle FFmpeg, ffprobe, and the FFmpeg DLLs; end users do not need to install FFmpeg, Python, or the SDK.
 
 ## Prepare your keys
 
@@ -61,10 +61,13 @@ The `.app` and `.dmg` are under `python/UI/dist/`. Run `python main.py` from `py
 
 ## Build the Windows `.exe` locally
 
-Run these commands in **PowerShell on Windows** from the repository root. Install FFmpeg for the build machine first and make sure both `ffmpeg.exe` and `ffprobe.exe` are on `PATH`; they are bundled into the app, so end users do not need FFmpeg.
+Run these commands in **PowerShell on Windows** from the repository root. Install FFmpeg for the build machine first. Set `ROBOCAP_FFMPEG_DIR` to the FFmpeg `bin` folder containing `ffmpeg.exe`, `ffprobe.exe`, and the accompanying DLLs so PyInstaller can bundle the complete runtime.
 
 ```powershell
 cd python\UI
+choco install ffmpeg --no-progress -y
+$ffmpeg = Get-ChildItem "$env:ChocolateyInstall\lib" -Filter ffmpeg.exe -File -Recurse | Where-Object { Test-Path (Join-Path $_.DirectoryName 'ffprobe.exe') } | Select-Object -First 1
+$env:ROBOCAP_FFMPEG_DIR = $ffmpeg.DirectoryName
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
@@ -104,7 +107,7 @@ The tag starts builds for macOS Intel, macOS Apple Silicon, and Windows x64 on n
 3. Select your key folder and click **Import Keys**.
 4. Choose an input folder and an output folder outside it, set the worker count, and click **Start Decryption**.
 
-Both packaged applications include the SDK, FFmpeg, and ffprobe. End users do not need Python or development tools. Keep the matching public and private PEM files together in the selected key folder; private keys are never bundled with the application.
+Both packaged applications include the SDK, FFmpeg, and ffprobe. The Windows app also bundles FFmpeg's adjacent DLLs, so end users do not need to install FFmpeg or any Python development dependencies. Keep the matching public and private PEM files together in the selected key folder; private keys are never bundled with the application.
 
 ## Troubleshooting
 

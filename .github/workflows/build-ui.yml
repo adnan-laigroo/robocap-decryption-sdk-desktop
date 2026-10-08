@@ -37,6 +37,20 @@ jobs:
       - name: Install FFmpeg (Windows)
         if: runner.os == 'Windows'
         run: choco install ffmpeg --no-progress -y
+      - name: Locate and verify Windows FFmpeg runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ffmpeg = Get-ChildItem -Path "$env:ChocolateyInstall\lib" -Filter ffmpeg.exe -File -Recurse |
+            Where-Object { Test-Path (Join-Path $_.DirectoryName 'ffprobe.exe') } |
+            Select-Object -First 1
+          if (-not $ffmpeg) { throw 'Could not find the installed FFmpeg bin directory.' }
+          $ffprobe = Join-Path $ffmpeg.DirectoryName 'ffprobe.exe'
+          & $ffmpeg.FullName -version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { throw 'ffmpeg.exe failed to start on the build runner.' }
+          & $ffprobe -version | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { throw 'ffprobe.exe failed to start on the build runner.' }
+          Add-Content -Path $env:GITHUB_ENV -Value "ROBOCAP_FFMPEG_DIR=$($ffmpeg.DirectoryName)"
       - name: Install application dependencies
         working-directory: python/UI
         run: |

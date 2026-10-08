@@ -2,6 +2,7 @@
 from pathlib import Path
 import shutil
 import sys
+import os
 
 ui_dir = Path(SPECPATH)
 python_dir = ui_dir.parent
@@ -11,13 +12,32 @@ if not script.is_file():
     raise FileNotFoundError(f"Expected upstream bulk decrypt script: {script}")
 
 # Bundle runtime media tools so end users do not need a separate ffmpeg install.
-binary_names = ("ffmpeg.exe", "ffprobe.exe") if sys.platform == "win32" else ("ffmpeg", "ffprobe")
-binaries = []
-for name in binary_names:
-    found = shutil.which(name)
-    if not found:
-        raise RuntimeError(f"{name} must be installed on the build machine and on PATH")
-    binaries.append((found, "."))
+if sys.platform == "win32":
+    configured_dir = os.environ.get("ROBOCAP_FFMPEG_DIR")
+    ffmpeg_dir = Path(configured_dir) if configured_dir else None
+    if ffmpeg_dir is None:
+        found = shutil.which("ffmpeg.exe")
+        ffmpeg_dir = Path(found).parent if found else None
+    if ffmpeg_dir is None or not (ffmpeg_dir / "ffmpeg.exe").is_file():
+        raise RuntimeError(
+            "Set ROBOCAP_FFMPEG_DIR to the FFmpeg bin directory containing "
+            "ffmpeg.exe, ffprobe.exe, and their DLLs"
+        )
+    if not (ffmpeg_dir / "ffprobe.exe").is_file():
+        raise RuntimeError(f"ffprobe.exe not found beside ffmpeg.exe in {ffmpeg_dir}")
+
+    # Windows FFmpeg distributions commonly use adjacent DLLs. Bundle all of
+    # them alongside both tools so the target PC needs no FFmpeg installation.
+    media_files = [ffmpeg_dir / "ffmpeg.exe", ffmpeg_dir / "ffprobe.exe"]
+    media_files.extend(sorted(ffmpeg_dir.glob("*.dll")))
+    binaries = [(str(path), ".") for path in media_files]
+else:
+    binaries = []
+    for name in ("ffmpeg", "ffprobe"):
+        found = shutil.which(name)
+        if not found:
+            raise RuntimeError(f"{name} must be installed on the build machine and on PATH")
+        binaries.append((found, "."))
 
 a = Analysis(
     [str(ui_dir / "main.py")],
